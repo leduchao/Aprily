@@ -1,6 +1,21 @@
 @Aprily.Api_HostAddress = http://localhost:5016
 
-GET {{Aprily.Api_HostAddress}}/weatherforecast/
+###
+
+GET {{Aprily.Api_HostAddress}}
 Accept: application/json
 
 ###
+
+POST {{Aprily.Api_HostAddress}}/sign-in
+Content-Type: application/json
+
+{
+    "email": "test@gmail.com",
+    "password": "123456"
+}
+
+###
+
+GET {{Aprily.Api_HostAddress}}/api/users/get-profile?email=hao@email.com
+Accept: application/json
