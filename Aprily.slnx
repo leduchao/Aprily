@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Aprily.Api/Aprily.Api.csproj" />
+    <Project Path="src/Aprily.Application/Aprily.Application.csproj" />
+    <Project Path="src/Aprily.Domain/Aprily.Domain.csproj" />
+    <Project Path="src/Aprily.Infrastructure/Aprily.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Aprily.Test/Aprily.Test.csproj" />
+  </Folder>
+</Solution>
