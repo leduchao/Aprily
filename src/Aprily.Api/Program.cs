@@ -14,10 +14,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/", () =>
-{
-    return Results.Ok("Hello World!");
-})
-.WithName("HelloWorld");
+app.MapGet("/", () => Results.Ok(new { greetingMessage = "Welcome to Aprily!" })).WithName("HelloWorld");
 
 app.Run();
