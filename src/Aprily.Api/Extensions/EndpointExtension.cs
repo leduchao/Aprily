@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
+
 using Aprily.Api.Endpoints;
+
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aprily.Api.Extensions;

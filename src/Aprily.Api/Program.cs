@@ -2,11 +2,14 @@ using System.Reflection;
 
 using Aprily.Api.Extensions;
 using Aprily.Application;
+using Aprily.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
