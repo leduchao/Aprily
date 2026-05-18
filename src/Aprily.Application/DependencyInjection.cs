@@ -1,5 +1,7 @@
 ﻿using Aprily.Application.Abstractions.Cqrs;
 
+using FluentValidation;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aprily.Application;
@@ -18,6 +20,10 @@ public static class DependencyInjection
             .AddClasses(classes => classes.AssignableTo(typeof(ICommandHandler<,>)), publicOnly: false)
                 .AsImplementedInterfaces()
                 .WithScopedLifetime());
+
+        services.AddMediatR(config => config.RegisterServicesFromAssemblies(typeof(DependencyInjection).Assembly));
+
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, includeInternalTypes: true);
 
         return services;
     }

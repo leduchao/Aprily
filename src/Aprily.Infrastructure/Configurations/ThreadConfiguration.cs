@@ -13,6 +13,8 @@ internal class ThreadConfiguration : IEntityTypeConfiguration<Domain.Entities.Th
 
         builder.HasKey(t => t.Id);
 
+        builder.HasIndex(t => t.EntityId).IsUnique();
+
         builder.HasOne(t => t.Creator)
             .WithMany(u => u.Threads)
             .HasForeignKey(t => t.CreatorId)

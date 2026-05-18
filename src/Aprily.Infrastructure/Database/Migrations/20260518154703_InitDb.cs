@@ -25,7 +25,8 @@ namespace Aprily.Infrastructure.Database.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Username = table.Column<string>(type: "text", nullable: true),
+                    FullName = table.Column<string>(type: "text", nullable: true),
+                    Username = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: false),
                     AvatarUrl = table.Column<string>(type: "text", nullable: true),
@@ -104,6 +105,13 @@ namespace Aprily.Infrastructure.Database.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Messages_EntityId",
+                schema: "chat",
+                table: "Messages",
+                column: "EntityId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Messages_SenderId",
                 schema: "chat",
                 table: "Messages",
@@ -122,10 +130,24 @@ namespace Aprily.Infrastructure.Database.Migrations
                 column: "CreatorId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Threads_EntityId",
+                schema: "chat",
+                table: "Threads",
+                column: "EntityId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
                 schema: "user",
                 table: "Users",
                 column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_EntityId",
+                schema: "user",
+                table: "Users",
+                column: "EntityId",
                 unique: true);
 
             migrationBuilder.CreateIndex(

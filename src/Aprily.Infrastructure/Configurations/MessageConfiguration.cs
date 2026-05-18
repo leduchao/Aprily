@@ -14,6 +14,8 @@ internal class MessageConfiguration : IEntityTypeConfiguration<Message>
 
         builder.HasKey(m => m.Id);
 
+        builder.HasIndex(m => m.EntityId).IsUnique();
+
         builder.HasOne(m => m.Sender)
             .WithMany(u => u.Messages)
             .HasForeignKey(m => m.SenderId)
