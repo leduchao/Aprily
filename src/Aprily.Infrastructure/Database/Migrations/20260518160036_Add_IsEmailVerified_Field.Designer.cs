@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Aprily.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260515103828_InitDb")]
-    partial class InitDb
+    [Migration("20260518160036_Add_IsEmailVerified_Field")]
+    partial class Add_IsEmailVerified_Field
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,7 +21,7 @@ namespace Aprily.Infrastructure.Database.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("public")
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -60,6 +60,9 @@ namespace Aprily.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
 
                     b.HasIndex("SenderId");
 
@@ -101,6 +104,9 @@ namespace Aprily.Infrastructure.Database.Migrations
 
                     b.HasIndex("CreatorId");
 
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
                     b.ToTable("Threads", "chat");
                 });
 
@@ -128,7 +134,13 @@ namespace Aprily.Infrastructure.Database.Migrations
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("FullName")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEmailVerified")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("LastLoginAt")
@@ -142,11 +154,15 @@ namespace Aprily.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Username")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("EntityId")
                         .IsUnique();
 
                     b.HasIndex("Username")

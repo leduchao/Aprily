@@ -1,5 +1,6 @@
 using System.Reflection;
 
+using Aprily.Api.Exceptions;
 using Aprily.Api.Extensions;
 using Aprily.Application;
 using Aprily.Infrastructure;
@@ -7,8 +8,10 @@ using Aprily.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication().AddInfrastructure(builder.Configuration);
+
+builder.Services.AddExceptionHandler<GlobalException>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
@@ -26,6 +29,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler();
 
 app.MapGet("/", () => Results.Ok(new { greetingMessage = "Welcome to Aprily!" })).WithName("HelloWorld");
 

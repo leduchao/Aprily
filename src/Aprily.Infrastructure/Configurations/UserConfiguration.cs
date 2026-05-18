@@ -13,6 +13,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable(nameof(AppDbContext.Users), Schemas.User);
 
         builder.HasKey(u => u.Id);
+
+        builder.HasIndex(u => u.EntityId).IsUnique();
         builder.HasIndex(u => u.Email).IsUnique();
         builder.HasIndex(u => u.Username).IsUnique();
     }

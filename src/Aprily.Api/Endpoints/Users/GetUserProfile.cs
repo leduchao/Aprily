@@ -1,5 +1,8 @@
 ﻿using Aprily.Application.Abstractions.Cqrs;
-using Aprily.Application.Users;
+using Aprily.Application.Users.GetUserProfile;
+using Aprily.SharedKernel;
+
+using MediatR;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,13 +12,13 @@ public class GetProfile : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("api/users/get-profile", async (
+        app.MapGet($"{BaseApiEndpoint.BasePath}/users/get-user-profile", async (
             [FromQuery] string email,
-            [FromServices] IQueryHandler<GetProfileQuery, UserProfileResponse> handler,
+            [FromServices] ISender sender,
             CancellationToken ct) =>
         {
-            var query = new GetProfileQuery(email);
-            var result = await handler.Handle(query, ct);
+            var query = new GetUserProfileQuery(email);
+            var result = await sender.Send(query, ct);
 
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
         });
