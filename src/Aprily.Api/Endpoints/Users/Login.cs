@@ -11,7 +11,7 @@ public class Login : IEndpoint
 
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/sign-in", async (
+        app.MapPost($"{BaseApiEndpoint.BasePath}/users/sign-in", async (
             [FromBody] Request request, 
             [FromServices] ICommandHandler<LoginCommand, LoginResponse> handler, 
             CancellationToken ct) =>
