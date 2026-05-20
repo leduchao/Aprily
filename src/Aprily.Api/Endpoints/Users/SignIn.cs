@@ -1,7 +1,6 @@
-﻿using Aprily.Application.Abstractions.Cqrs;
-using Aprily.Application.Users.SignIn;
+﻿using Aprily.Application.Users.SignIn;
 
-using Microsoft.AspNetCore.Mvc;
+using MediatR;
 
 namespace Aprily.Api.Endpoints.Users;
 
@@ -12,12 +11,12 @@ public class SignIn : IEndpoint
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost($"{BaseApiEndpoint.BasePath}/users/sign-in", async (
-            [FromBody] Request request,
-            [FromServices] ICommandHandler<SignInCommand, SignInResponse> handler,
+            Request request,
+            ISender sender,
             CancellationToken ct) =>
         {
             var command = new SignInCommand(request.Email, request.Password);
-            var result = await handler.Handle(command, ct);
+            var result = await sender.Send(command, ct);
 
             return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
         });

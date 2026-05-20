@@ -16,8 +16,10 @@ public class GetUserProfileQueryHandler(IUserRepository userRepository) : IReque
                 new UserProfileResponse(
                     user.Username,
                     user.FullName,
+                    user.Email,
                     user.AvatarUrl,
-                    user.LastLoginAt
+                    user.LastLoginAt,
+                    user.IsEmailVerified
                 ));
     }
 }
