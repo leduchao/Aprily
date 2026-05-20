@@ -10,7 +10,9 @@ public class UserRepository(AppDbContext db) : IUserRepository
 {
     public async Task<User?> GetUserByEmail(string email)
     {
-        var user = await db.Users.FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, email));
+        var user = await db.Users.FirstOrDefaultAsync(u => 
+            EF.Functions.ILike(u.Email, email) || EF.Functions.ILike(u.Username, email));
+
         return user;
     }
 
