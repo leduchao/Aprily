@@ -1,8 +1,10 @@
 using Aprily.Application.Abstractions.Cqrs;
 using Aprily.Application.Abstractions.Repositories;
 using Aprily.Application.Abstractions.Services;
+using Aprily.Application.Users.GetUserProfile;
 using Aprily.Domain.Entities;
 using Aprily.SharedKernel;
+
 using FluentValidation;
 
 namespace Aprily.Application.Users.SignUp;
@@ -42,13 +44,16 @@ public class SignUpCommandHandler(
         await userRepository.AddUser(user, ct);
 
         var accessToken = tokenProvider.GenerateToken(user);
-
-        var response = new SignUpResponse(
-            accessToken,
+        var userProfile = new UserProfileResponse(
             user.Username,
             user.FullName,
+            user.Email,
             user.AvatarUrl,
-            user.IsEmailVerified);
+            user.LastLoginAt,
+            user.IsEmailVerified
+        );
+
+        var response = new SignUpResponse(accessToken, userProfile);
 
         return Result<SignUpResponse>.Success(response);
     }

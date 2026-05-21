@@ -44,10 +44,7 @@ public class SignInCommandHandler(
             user.IsEmailVerified
         );
 
-        var response = new SignInResponse(
-            accessToken,
-            userProfile
-        );
+        var response = new SignInResponse(accessToken, userProfile);
 
         return Result<SignInResponse>.Success(response);
     }
