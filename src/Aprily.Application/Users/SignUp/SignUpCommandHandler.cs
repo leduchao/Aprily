@@ -45,6 +45,7 @@ public class SignUpCommandHandler(
 
         var accessToken = tokenProvider.GenerateToken(user);
         var userProfile = new UserProfileResponse(
+            user.EntityId,
             user.Username,
             user.FullName,
             user.Email,
