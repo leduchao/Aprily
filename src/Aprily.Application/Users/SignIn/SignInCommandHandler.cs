@@ -36,6 +36,7 @@ public class SignInCommandHandler(
 
         var accessToken = tokenProvider.GenerateToken(user);
         var userProfile = new UserProfileResponse(
+            user.EntityId,
             user.Username,
             user.FullName,
             user.Email,
@@ -44,10 +45,7 @@ public class SignInCommandHandler(
             user.IsEmailVerified
         );
 
-        var response = new SignInResponse(
-            accessToken,
-            userProfile
-        );
+        var response = new SignInResponse(accessToken, userProfile);
 
         return Result<SignInResponse>.Success(response);
     }

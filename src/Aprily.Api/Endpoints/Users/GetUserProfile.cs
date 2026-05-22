@@ -8,7 +8,9 @@ public class GetProfile : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet($"{BaseApiEndpoint.BasePath}/users/get-user-profile", async (
+        var users = app.MapUsers();
+        
+        users.MapGet("/get-user-profile", async (
             string email,
             ISender sender,
             CancellationToken ct) =>

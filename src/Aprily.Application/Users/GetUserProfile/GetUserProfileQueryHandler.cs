@@ -14,6 +14,7 @@ public class GetUserProfileQueryHandler(IUserRepository userRepository) : IReque
             ? Result<UserProfileResponse>.Failure(new Error("users.not_found", "User not found"))
             : Result<UserProfileResponse>.Success(
                 new UserProfileResponse(
+                    user.EntityId,
                     user.Username,
                     user.FullName,
                     user.Email,

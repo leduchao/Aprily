@@ -7,6 +7,7 @@ namespace Aprily.Application.Users.GetUserProfile;
 public record GetUserProfileQuery(string Email) : IRequest<Result<UserProfileResponse>>;
 
 public record UserProfileResponse(
+    Guid Id,
     string Username,
     string? FullName,
     string Email,

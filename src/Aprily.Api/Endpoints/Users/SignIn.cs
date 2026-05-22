@@ -10,7 +10,9 @@ public class SignIn : IEndpoint
 
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost($"{BaseApiEndpoint.BasePath}/users/sign-in", async (
+        var users = app.MapUsers().AllowAnonymous();
+
+        users.MapPost("/sign-in", async (
             Request request,
             ISender sender,
             CancellationToken ct) =>
