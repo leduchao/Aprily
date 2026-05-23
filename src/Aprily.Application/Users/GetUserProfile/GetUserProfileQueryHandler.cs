@@ -5,15 +5,15 @@ using MediatR;
 
 namespace Aprily.Application.Users.GetUserProfile;
 
-public class GetUserProfileQueryHandler(IUserRepository userRepository) : IRequestHandler<GetUserProfileQuery, Result<UserProfileResponse>>
+public class GetUserProfileQueryHandler(IUserRepository userRepository) : IRequestHandler<GetUserProfileQuery, Result<UserInfoDto>>
 {
-    public async Task<Result<UserProfileResponse>> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
+    public async Task<Result<UserInfoDto>> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetUserByEmail(request.Email);
         return user == null
-            ? Result<UserProfileResponse>.Failure(new Error("users.not_found", "User not found"))
-            : Result<UserProfileResponse>.Success(
-                new UserProfileResponse(
+            ? Result<UserInfoDto>.Failure(new Error("users.not_found", "User not found"))
+            : Result<UserInfoDto>.Success(
+                new UserInfoDto(
                     user.EntityId,
                     user.Username,
                     user.FullName,

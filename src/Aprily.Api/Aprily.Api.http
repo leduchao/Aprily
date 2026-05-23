@@ -1,21 +1,30 @@
-@Aprily.Api_HostAddress = http://localhost:5016
+@Aprily.Api_HostAddress=http://localhost:5016/api/v1
+@accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiI2YzBjNjNkMy1kODY2LTQwYzgtYjExNC1kNjNjMjg2YTg4NzciLCJ1bmlxdWVfbmFtZSI6ImZha2VyMSIsImVtYWlsIjoiZmFrZXJAdDEuY29tIiwibmJmIjoxNzc5NTIyNTU2LCJleHAiOjE3Nzk1MjYxNTYsImlhdCI6MTc3OTUyMjU1NiwiaXNzIjoiYXByaWx5IiwiYXVkIjoiYXByaWx5In0.rqrH3tvLzDr7Pnmsu8XJqSmtTkVheZrrEcjnKeIOGX8
 
-###
+### home
 
 GET {{Aprily.Api_HostAddress}}
 Accept: application/json
 
-###
+### login
 
-POST {{Aprily.Api_HostAddress}}/sign-in
+POST {{Aprily.Api_HostAddress}}/users/auth/sign-in
 Content-Type: application/json
 
 {
-    "email": "test@gmail.com",
-    "password": "123456"
+    "email": "faker@t1.com",
+    "password": "faker123"
 }
 
-###
+### refresh-token
 
-GET {{Aprily.Api_HostAddress}}/api/users/get-profile?email=hao@email.com
-Accept: application/json
+POST {{Aprily.Api_HostAddress}}/users/auth/refresh-token
+Content-Type: application/json
+{
+    "token": "SkjAfTmKAaBQhaCb7gKo/UnskuLbENdzCfaRbeWdU+i6d5YjBxVC+Puw1gvGwPMQ1V56K4GqjxAqPOQJOi1sXA=="
+}
+
+### sign-out
+
+POST {{Aprily.Api_HostAddress}}/users/auth/sign-out
+Authorization: Bearer {{accessToken}}

@@ -1,11 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 using Aprily.Application.Abstractions.Services;
 using Aprily.Domain.Entities;
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Aprily.Infrastructure.Services;
@@ -14,7 +15,12 @@ public class TokenProvider(IConfiguration configuration) : ITokenProvider
 {
     private readonly IConfiguration _configuration = configuration;
 
-    public string GenerateToken(User user)
+    public string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    }
+
+    public string GenerateAccessToken(User user)
     {
         string secretKey = _configuration["Jwt:Secret"]!;
 
@@ -25,7 +31,7 @@ public class TokenProvider(IConfiguration configuration) : ITokenProvider
         {
             Subject = new ClaimsIdentity(
             [
-                new Claim(JwtRegisteredClaimNames.Sub, user.EntityId.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.EntityId.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email)
             ]),
@@ -35,10 +41,10 @@ public class TokenProvider(IConfiguration configuration) : ITokenProvider
             Audience = _configuration["Jwt:Audience"]
         };
 
-        var handler = new JsonWebTokenHandler();
-        string token = handler.CreateToken(tokenDescriptor);
+        var handler = new JwtSecurityTokenHandler();
+        var token = handler.CreateToken(tokenDescriptor);
 
-        return token;
+        return handler.WriteToken(token);
     }
 
     public Guid? ValidateToken(string token)

@@ -7,7 +7,7 @@ using FluentValidation;
 
 using MediatR;
 
-namespace Aprily.Application.Users.SignIn;
+namespace Aprily.Application.Users.Auth.SignIn;
 
 public class SignInCommandHandler(
     IUserRepository userRepository,
@@ -34,8 +34,8 @@ public class SignInCommandHandler(
         user.LastLoginAt = DateTime.UtcNow;
         await userRepository.UpdateUser(user, cancellationToken);
 
-        var accessToken = tokenProvider.GenerateToken(user);
-        var userProfile = new UserProfileResponse(
+        var accessToken = tokenProvider.GenerateAccessToken(user);
+        var userProfile = new UserInfoDto(
             user.EntityId,
             user.Username,
             user.FullName,
@@ -45,7 +45,19 @@ public class SignInCommandHandler(
             user.IsEmailVerified
         );
 
-        var response = new SignInResponse(accessToken, userProfile);
+        var refreshToken = tokenProvider.GenerateRefreshToken();
+
+        var newRefreshToken = new Domain.Entities.RefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiryDate = DateTime.UtcNow.AddDays(7),
+            IsRevoked = false,
+        };
+
+        await userRepository.AddRefreshToken(newRefreshToken, cancellationToken);
+
+        var response = new SignInResponse(accessToken, refreshToken, userProfile);
 
         return Result<SignInResponse>.Success(response);
     }

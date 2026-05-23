@@ -4,9 +4,9 @@ using MediatR;
 
 namespace Aprily.Application.Users.GetUserProfile;
 
-public record GetUserProfileQuery(string Email) : IRequest<Result<UserProfileResponse>>;
+public record GetUserProfileQuery(string Email) : IRequest<Result<UserInfoDto>>;
 
-public record UserProfileResponse(
+public record UserInfoDto(
     Guid Id,
     string Username,
     string? FullName,
@@ -15,4 +15,11 @@ public record UserProfileResponse(
     DateTime LastLogin,
     bool IsEmailVerified);
 
-
+public record UserProfileDto(
+    Guid Id,
+    string Username,
+    string? FullName,
+    string Email,
+    string? AvatarUrl,
+    DateTime LastLogin,
+    bool IsEmailVerified);
