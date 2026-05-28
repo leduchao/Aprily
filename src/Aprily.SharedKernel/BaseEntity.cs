@@ -1,6 +1,6 @@
 ﻿namespace Aprily.SharedKernel;
 
-public abstract class Entity
+public abstract class BaseEntity
 {
     public int Id { get; init; }
     public Guid EntityId { get; init; }
@@ -11,7 +11,7 @@ public abstract class Entity
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 
-    protected Entity()
+    protected BaseEntity()
     {
         EntityId = Guid.NewGuid();
         CreatedAt = DateTime.UtcNow;

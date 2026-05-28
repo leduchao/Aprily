@@ -19,14 +19,13 @@ builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 builder.Services.AddOpenApi();
 
 builder.Services.AddCors(options => 
-    options.AddDefaultPolicy(policy => 
-        policy.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader()));
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins("http://localhost:5173")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials()));
 
 var app = builder.Build();
-
-app.MapEndpoints();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -34,11 +33,16 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseCors();
-
 app.UseHttpsRedirection();
 
+app.UseCors();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseExceptionHandler();
+
+app.MapEndpoints();
 
 app.MapGet("/", () => Results.Ok(new { greetingMessage = "Welcome to Aprily!" })).WithName("HelloWorld");
 

@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Aprily.Application.Users.SignUp;
+namespace Aprily.Application.Users.Auth.SignUp;
 
 internal class SignUpCommandValidator : AbstractValidator<SignUpCommand>
 {

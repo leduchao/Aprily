@@ -2,7 +2,7 @@
 
 namespace Aprily.Domain.Entities;
 
-public class User : Entity
+public class User : BaseEntity
 {
     public string? FullName { get; set; }
     public string Username { get; set; } = null!;
@@ -15,4 +15,5 @@ public class User : Entity
 
     public ICollection<Thread> Threads { get; set; } = [];
     public ICollection<Message> Messages { get; set; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }
