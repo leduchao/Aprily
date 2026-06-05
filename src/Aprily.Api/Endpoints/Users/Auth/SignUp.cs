@@ -1,4 +1,5 @@
 using Aprily.Application.Users.Auth.SignUp;
+using Aprily.SharedKernel;
 
 using MediatR;
 
@@ -13,7 +14,7 @@ public class SignUp : IEndpoint
         app.MapUsers()
             .MapPost(
                 "/auth/sign-up",
-                async (Request request, ISender sender, CancellationToken ct) =>
+                async (Request request, HttpContext httpContext, ISender sender, CancellationToken ct) =>
                 {
                     var command = new SignUpCommand(
                         request.Username,
@@ -22,7 +23,24 @@ public class SignUp : IEndpoint
                         request.FullName);
 
                     var result = await sender.Send(command, ct);
-                    return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
+                    if (result.IsFailure || result.Data is null)
+                    {
+                        return Results.BadRequest(result);
+                    }
+
+                    httpContext.Response.Cookies.Append(
+                        "refreshToken",
+                        result.Data.RefreshToken,
+                        new CookieOptions
+                        {
+                            HttpOnly = true,
+                            Secure = true,
+                            SameSite = SameSiteMode.None,
+                            Expires = DateTimeOffset.UtcNow.AddDays(7)
+                        });
+
+                    return Results.Ok(Result<SignUpResponse>.Success(
+                        new SignUpResponse(result.Data.AccessToken, string.Empty, result.Data.User)));
                 })
             .WithTags(nameof(SignUp))
             .AllowAnonymous();
