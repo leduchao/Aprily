@@ -2,6 +2,7 @@ using System.Reflection;
 
 using Aprily.Api.Exceptions;
 using Aprily.Api.Extensions;
+using Aprily.Api.Hubs;
 using Aprily.Application;
 using Aprily.Infrastructure;
 
@@ -14,6 +15,7 @@ builder.Services.AddExceptionHandler<GlobalException>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
+builder.Services.AddSignalR();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -43,6 +45,7 @@ app.UseAuthorization();
 app.UseExceptionHandler();
 
 app.MapEndpoints();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.MapGet("/", () => Results.Ok(new { greetingMessage = "Welcome to Aprily!" })).WithName("HelloWorld");
 

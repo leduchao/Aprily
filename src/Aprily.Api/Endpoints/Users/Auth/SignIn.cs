@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Aprily.Api.Endpoints.Users.Auth;
 
-public class SignIn : IEndpoint
+internal class SignIn : IEndpoint
 {
     private record Request(string Email, string Password);
 
