@@ -14,6 +14,7 @@ public class User : BaseEntity
     public DateTime LastLoginAt { get; set; }
 
     public ICollection<Thread> Threads { get; set; } = [];
+    public ICollection<ThreadParticipant> ThreadParticipants { get; set; } = [];
     public ICollection<Message> Messages { get; set; } = [];
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

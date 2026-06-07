@@ -49,6 +49,17 @@ public static class DependencyInjection
 
                 options.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = context =>
+                    {
+                        string? accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    },
                     OnAuthenticationFailed = ctx =>
                     {
                         Console.WriteLine(ctx.Exception);
@@ -65,6 +76,7 @@ public static class DependencyInjection
         // Register repositories, services, etc.
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ITokenProvider, TokenProvider>();
+        services.AddScoped<IChatRepository, ChatRepository>();
 
         return services;
     }
