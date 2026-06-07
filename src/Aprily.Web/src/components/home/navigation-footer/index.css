@@ -1,0 +1,9 @@
+.navbar {
+  width: 60%;
+  max-width: 260px;
+  min-width: 220px;
+}
+
+.icon-list {
+  font-size: 1.6rem;
+}

@@ -1,0 +1,59 @@
+{
+  "common": {
+    "mobileOnly": "📱 Mobile only support",
+    "mobileOnlyDescription": "Please use this application on a mobile device or shrink your browser window to under 768px.",
+    "rememberMe": "Remember me",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "or": "or",
+    "signInWithGoogle": "Sign in with Google",
+    "signInWithFacebook": "Sign in with Facebook",
+    "submitted": "submitted"
+  },
+  "signIn": {
+    "title": "Sign in",
+    "subtitle": "Please enter your credentials to sign in.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "loading": "Signing in...",
+    "noAccount": "Don't have an account?",
+    "signUpLink": "Sign up"
+  },
+  "signUp": {
+    "title": "Create an account",
+    "subtitle": "Please enter your details to create an account.",
+    "fullName": "Full Name",
+    "fullNameExample": "e.g. John Doe",
+    "username": "Username",
+    "usernameExample": "e.g. johndoe",
+    "email": "Email",
+    "emailExample": "e.g. johndoe@example.com",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordHelper": "Confirm your password",
+    "submit": "Create account",
+    "haveAccount": "Already have an account?",
+    "signInLink": "Sign in"
+  },
+  "home": {
+    "chats": "Chats",
+    "chatListSubtitle": "Recent conversations",
+    "searchPlaceholder": "Search friends or groups",
+    "messagePlaceholder": "Type a message",
+    "moreActions": "More options",
+    "selectThread": "Select a conversation",
+    "selectThreadSubtitle": "Choose a thread to open",
+    "threadPlaceholder": "Tap a thread to open the chat",
+    "threadPreviewHint": "This is a preview area before opening a thread."
+  },
+  "validation": {
+    "invalidEmail": "Invalid email address",
+    "passwordMinLength": "Password must be at least 8 characters long.",
+    "fullNameMinLength": "Full name must be at least 2 characters long.",
+    "usernameMinLength": "Username must be at least 3 characters long.",
+    "usernameInvalid": "Username can only contain letters, numbers, and underscores.",
+    "confirmPasswordRequired": "Please confirm your password.",
+    "passwordsDoNotMatch": "Password do not match."
+  }
+}
