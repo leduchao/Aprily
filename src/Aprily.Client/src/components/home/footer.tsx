@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const actions = [
   {
@@ -55,9 +56,10 @@ export const Footer = () => {
 
           <DialogTrigger asChild>
             <Button
-              className={`h-12 gap-2 rounded-full bg-primary px-8 text-lg font-medium hover:bg-foreground/90 ${
-                isOpen ? "opacity-0" : ""
-              }`}
+              className={cn(
+                "h-12 gap-2 rounded-full bg-primary px-8 text-lg font-medium",
+                isOpen && "opacity-0"
+              )}
             >
               <Plus className="size-6" />
               <span>New Chat</span>
@@ -93,9 +95,10 @@ export const Footer = () => {
               <Button
                 variant="ghost"
                 key={action.title}
-                className={`h-auto w-full justify-start gap-4 rounded-none px-6 py-4 text-left hover:bg-muted/50 ${
-                  index > 0 ? "border-t border-border/60" : ""
-                }`}
+                className={cn(
+                  "h-auto w-full justify-start gap-4 rounded-none px-6 py-4 text-left hover:bg-muted/50",
+                  index > 0 && "border-t border-border/60"
+                )}
               >
                 <Icon className="size-6 shrink-0 text-foreground" />
                 <span className="min-w-0">

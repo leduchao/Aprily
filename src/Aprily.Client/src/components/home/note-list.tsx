@@ -88,7 +88,7 @@ export const NoteList = () => {
         >
           <span className="relative">
             <span className="absolute bottom-12 left-1/2 z-10 w-20 -translate-x-1/2 rounded-2xl bg-primary px-2.5 py-1 text-center text-[11px] leading-tight break-words text-card-foreground shadow-sm">
-              <span className="line-clamp-2 text-background">Your note...</span>
+              <span className="line-clamp-2 text-gray-900">Your note...</span>
             </span>
 
             <span className="flex size-16 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground">
@@ -109,7 +109,7 @@ export const NoteList = () => {
             <div className="relative">
               {item.note?.trim() && (
                 <p className="absolute bottom-12 left-1/2 z-10 w-20 -translate-x-1/2 rounded-2xl bg-primary px-2.5 py-1 text-center text-[11px] leading-tight break-words text-card-foreground shadow-sm">
-                  <span className="line-clamp-2 text-background">
+                  <span className="line-clamp-2 text-gray-900">
                     {item.note}
                   </span>
                 </p>
@@ -119,13 +119,13 @@ export const NoteList = () => {
                 <AvatarImage src={item.avatar} alt="@shadcn" />
                 <AvatarFallback>CN</AvatarFallback>
                 {item.status === "active" && (
-                  <AvatarBadge className="bg-green-600 dark:bg-green-800" />
+                  <AvatarBadge className="bg-green-600 dark:bg-green-500" />
                 )}
               </Avatar>
             </div>
-            <p className="mt-2 w-full truncate text-center text-sm">
+            <span className="mt-2 w-full truncate text-center text-sm font-medium">
               {item.name}
-            </p>
+            </span>
           </div>
         ))}
       </div>

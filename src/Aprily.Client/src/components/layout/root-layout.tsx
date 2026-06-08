@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 export const RootLayout = () => {
   return (
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider>
       <MobileOnly>
         <Outlet />
       </MobileOnly>
