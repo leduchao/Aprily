@@ -1,7 +1,0 @@
-.thread-item {
-  transition: background-color 0.2s ease;
-}
-
-.thread-item:hover {
-  background-color: var(--bs-tertiary-bg) !important;
-}
