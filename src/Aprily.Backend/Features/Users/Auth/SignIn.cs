@@ -1,3 +1,4 @@
+using Aprily.Backend.Common.Extensions;
 using Aprily.Backend.Common.Results;
 
 using FluentValidation;
@@ -40,7 +41,7 @@ public static class SignIn
             var command = new Command(request.Email, request.Password);
             var result = await sender.Send(command);
 
-            return result.IsSuccess ? Results.Ok(result) : Results.BadRequest(result);
+            return result.ToHttpResult();
 
         }).AllowAnonymous();
     }
