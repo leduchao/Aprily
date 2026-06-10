@@ -4,9 +4,9 @@ using FluentValidation;
 
 using MediatR;
 
-namespace Aprily.Backend.Features.User.Auth;
+namespace Aprily.Backend.Features.Users.Auth;
 
-public static class SignIn
+public static class SignUp
 {
     public record Request(string Email, string Password);
     public record Response(string AccessToken, string Username, string? AvatarUrl);
@@ -22,20 +22,22 @@ public static class SignIn
         }
     }
 
-    public class Handler : IRequestHandler<Command, Result<Response>>
+    public class Handler(IValidator<Command> validator) : IRequestHandler<Command, Result<Response>>
     {
+        private readonly IValidator<Command> _validator = validator;
+
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
         {
-            var result = Result<Response>.Success(new Response("access_token", "username", "avatar_url"));
+            var result = Result<Response>.Success(new Response("access_token", "sign up", "avatar_url"));
             await Task.CompletedTask;
 
             return result;
         }
     }
 
-    public static void MapSignInEndpoint(this RouteGroupBuilder group)
+    public static void MapSignUpEndpoint(this RouteGroupBuilder group)
     {
-        group.MapPost("/auth/sign-in", async (Request request, ISender sender) =>
+        group.MapPost("/sign-up", async (Request request, ISender sender) =>
         {
             var command = new Command(request.Email, request.Password);
             var result = await sender.Send(command);

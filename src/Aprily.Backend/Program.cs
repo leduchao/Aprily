@@ -1,5 +1,5 @@
 using Aprily.Backend.Common.Extensions;
-using Aprily.Backend.Features.User;
+using Aprily.Backend.Features.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
