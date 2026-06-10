@@ -18,9 +18,9 @@ public static class SignIn
     public record Request(string Email, string Password);
     public record Response(string AccessToken, string RefreshToken, UserBasicInfo User);
 
-    public record Command(string Email, string Password) : IRequest<Result<Response>>;
+    internal record Command(string Email, string Password) : IRequest<Result<Response>>;
 
-    public class Validator : AbstractValidator<Command>
+    internal sealed class Validator : AbstractValidator<Command>
     {
         public Validator()
         {
@@ -29,7 +29,7 @@ public static class SignIn
         }
     }
 
-    public class Handler(AppDbContext dbContext, ITokenProvider tokenProvider, IPasswordHasher passwordHasher) : IRequestHandler<Command, Result<Response>>
+    internal sealed class Handler(AppDbContext dbContext, ITokenProvider tokenProvider, IPasswordHasher passwordHasher) : IRequestHandler<Command, Result<Response>>
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ITokenProvider _tokenProvider = tokenProvider;
@@ -84,12 +84,31 @@ public static class SignIn
 
     public static void MapSignInEndpoint(this RouteGroupBuilder group)
     {
-        group.MapPost("/sign-in", async (Request request, ISender sender) =>
+        group.MapPost("/sign-in", async (Request request, ISender sender, HttpContext httpContext) =>
         {
             var command = new Command(request.Email, request.Password);
             var result = await sender.Send(command);
+            if (result.IsFailure || result.Data is null)
+            {
+                return Results.BadRequest(result);
+            }
 
-            return result.ToHttpResult();
+            httpContext.Response.Cookies.Append(
+                "refreshToken",
+                result.Data.RefreshToken,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTimeOffset.UtcNow.AddDays(7)
+                });
+
+            return Results.Ok(Result<object>.Success(new
+            {
+                accessToken = result.Data.AccessToken,
+                user = result.Data.User
+            }));
 
         }).AllowAnonymous();
     }

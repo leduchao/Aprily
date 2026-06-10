@@ -121,7 +121,7 @@ public static class ServiceCollectionExtension
             config.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
 
-        services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+        services.AddValidatorsFromAssembly(typeof(Program).Assembly, includeInternalTypes: true);
 
         services.AddUsersFeaturesServices(configuration);
 

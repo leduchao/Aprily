@@ -92,13 +92,31 @@ public static class SignUp
 
     public static void MapSignUpEndpoint(this RouteGroupBuilder group)
     {
-        group.MapPost("/sign-up", async (Request request, ISender sender) =>
+        group.MapPost("/sign-up", async (Request request, ISender sender, HttpContext httpContext) =>
         {
             var command = new Command(request.FullName, request.Username, request.Email, request.Password);
             var result = await sender.Send(command);
+            if (result.IsFailure || result.Data is null)
+            {
+                return Results.BadRequest(result);
+            }
 
-            return result.ToHttpResult();
+            httpContext.Response.Cookies.Append(
+                "refreshToken",
+                result.Data.RefreshToken,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTimeOffset.UtcNow.AddDays(7)
+                });
 
+            return Results.Ok(Result<object>.Success(new
+            {
+                accessToken = result.Data.AccessToken,
+                user = result.Data.User
+            }));
         }).AllowAnonymous();
     }
 }
