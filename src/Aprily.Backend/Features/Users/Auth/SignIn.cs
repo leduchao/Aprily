@@ -1,4 +1,3 @@
-using Aprily.Backend.Common.Extensions;
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
 using Aprily.Backend.Entities;
