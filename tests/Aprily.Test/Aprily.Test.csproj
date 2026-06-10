@@ -18,4 +18,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aprily.Backend\Aprily.Backend.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -17,31 +17,64 @@ public class PasswordHasher : IPasswordHasher
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
         var key = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, Algorithm, KeySize);
 
-        return $"{Convert.ToBase64String(salt)}{Delimiter}{Convert.ToBase64String(key)}";
+        return $"{Iterations}{Delimiter}{Convert.ToBase64String(salt)}{Delimiter}{Convert.ToBase64String(key)}";
     }
 
     public bool Verify(string password, string hashedPassword)
     {
-        if (string.IsNullOrWhiteSpace(hashedPassword))
+        if (string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(hashedPassword))
         {
             return false;
         }
 
         var parts = hashedPassword.Split(Delimiter);
-        if (parts.Length != 2)
+
+        string encodedSalt;
+        string encodedKey;
+
+        if (parts.Length == 3 && int.TryParse(parts[0], out int iterations))
+        {
+            encodedSalt = parts[1];
+            encodedKey = parts[2];
+        }
+        else if (parts.Length == 2)
+        {
+            iterations = Iterations;
+            encodedSalt = parts[0];
+            encodedKey = parts[1];
+        }
+        else
         {
             return false;
         }
 
-        var salt = Convert.FromBase64String(parts[0]);
-        var key = Convert.FromBase64String(parts[1]);
-        if (key.Length != KeySize)
+        if (iterations <= 0)
         {
             return false;
         }
 
-        var computedKey = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, Algorithm, KeySize);
+        try
+        {
+            var salt = Convert.FromBase64String(encodedSalt);
+            var key = Convert.FromBase64String(encodedKey);
 
-        return CryptographicOperations.FixedTimeEquals(computedKey, key);
+            if (salt.Length != SaltSize || key.Length != KeySize)
+            {
+                return false;
+            }
+
+            var computedKey = Rfc2898DeriveBytes.Pbkdf2(
+                password,
+                salt,
+                iterations,
+                Algorithm,
+                KeySize);
+
+            return CryptographicOperations.FixedTimeEquals(computedKey, key);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 }

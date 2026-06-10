@@ -58,9 +58,6 @@ public static class SignUp
                 LastLoginAt = DateTime.UtcNow
             };
 
-            await _dbContext.Users.AddAsync(user, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
             var accessToken = _tokenProvider.GenerateAccessToken(user);
 
             var userProfile = new UserBasicInfo(
@@ -76,13 +73,15 @@ public static class SignUp
 
             var newRefreshToken = new RefreshToken
             {
-                UserId = user.Id,
+                User = user,
                 Token = refreshToken,
                 ExpiryDate = DateTime.UtcNow.AddDays(7),
                 IsRevoked = false,
             };
 
+            await _dbContext.Users.AddAsync(user, cancellationToken);
             await _dbContext.RefreshTokens.AddAsync(newRefreshToken, cancellationToken);
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var response = new Response(accessToken, refreshToken, userProfile);

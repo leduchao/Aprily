@@ -1,16 +1,22 @@
 using Aprily.Backend.Common.Extensions;
 using Aprily.Backend.Common.Results;
+using Aprily.Backend.Database;
+using Aprily.Backend.Entities;
+using Aprily.Backend.Features.Users.Models;
+using Aprily.Backend.Features.Users.Services.Abstractions;
 
 using FluentValidation;
 
 using MediatR;
+
+using Microsoft.EntityFrameworkCore;
 
 namespace Aprily.Backend.Features.Users.Auth;
 
 public static class SignIn
 {
     public record Request(string Email, string Password);
-    public record Response(string AccessToken, string Username, string? AvatarUrl);
+    public record Response(string AccessToken, string RefreshToken, UserBasicInfo User);
 
     public record Command(string Email, string Password) : IRequest<Result<Response>>;
 
@@ -19,18 +25,60 @@ public static class SignIn
         public Validator()
         {
             RuleFor(r => r.Email).NotEmpty().EmailAddress();
-            RuleFor(r => r.Password).NotEmpty().MinimumLength(6).MaximumLength(16);
+            RuleFor(r => r.Password).NotEmpty();
         }
     }
 
-    public class Handler : IRequestHandler<Command, Result<Response>>
+    public class Handler(AppDbContext dbContext, ITokenProvider tokenProvider, IPasswordHasher passwordHasher) : IRequestHandler<Command, Result<Response>>
     {
+        private readonly AppDbContext _dbContext = dbContext;
+        private readonly ITokenProvider _tokenProvider = tokenProvider;
+        private readonly IPasswordHasher _passwordHasher = passwordHasher;
+
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
         {
-            var result = Result<Response>.Success(new Response("access_token", "username", "avatar_url"));
-            await Task.CompletedTask;
+            var user = await _dbContext.Users
+                .FirstOrDefaultAsync(p => p.Email == request.Email, cancellationToken);
 
-            return result;
+            if (user == null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
+            {
+                return Result<Response>.Failure(
+                    new Error("users.sign_in_failed", "Invalid email or password"));
+            }
+
+            user.LastLoginAt = DateTime.UtcNow;
+
+            _dbContext.Users.Update(user);
+
+            var accessToken = _tokenProvider.GenerateAccessToken(user);
+
+            var userProfile = new UserBasicInfo(
+                user.EntityId,
+                user.Username,
+                user.FullName,
+                user.Email,
+                user.AvatarUrl,
+                user.LastLoginAt,
+                user.IsEmailVerified
+            );
+
+            var refreshToken = _tokenProvider.GenerateRefreshToken();
+
+            var newRefreshToken = new RefreshToken
+            {
+                UserId = user.Id,
+                Token = refreshToken,
+                ExpiryDate = DateTime.UtcNow.AddDays(7),
+                IsRevoked = false,
+            };
+
+            await _dbContext.RefreshTokens.AddAsync(newRefreshToken, cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var response = new Response(accessToken, refreshToken, userProfile);
+
+            return Result<Response>.Success(response);
         }
     }
 
