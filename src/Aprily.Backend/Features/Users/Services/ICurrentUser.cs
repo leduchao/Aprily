@@ -1,4 +1,4 @@
-namespace Aprily.Backend.Features.Users.Services.Abstractions;
+namespace Aprily.Backend.Features.Users.Services;
 
 public interface ICurrentUser
 {

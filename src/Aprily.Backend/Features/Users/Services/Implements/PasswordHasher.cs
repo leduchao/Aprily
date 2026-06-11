@@ -1,7 +1,5 @@
 using System.Security.Cryptography;
 
-using Aprily.Backend.Features.Users.Services.Abstractions;
-
 namespace Aprily.Backend.Features.Users.Services.Implements;
 
 public class PasswordHasher : IPasswordHasher

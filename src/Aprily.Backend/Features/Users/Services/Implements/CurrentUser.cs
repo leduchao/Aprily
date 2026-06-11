@@ -1,5 +1,4 @@
 using Aprily.Backend.Common.Extensions;
-using Aprily.Backend.Features.Users.Services.Abstractions;
 
 namespace Aprily.Backend.Features.Users.Services.Implements;
 
