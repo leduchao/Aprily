@@ -108,7 +108,6 @@ public static class SignIn
                 accessToken = result.Data.AccessToken,
                 user = result.Data.User
             }));
-
         }).AllowAnonymous();
     }
 }

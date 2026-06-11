@@ -18,5 +18,6 @@ public static class UsersEndpoints
 
         auth.MapSignInEndpoint();
         auth.MapSignUpEndpoint();
+        auth.MapSignOutEndpoint();
     }
 }
