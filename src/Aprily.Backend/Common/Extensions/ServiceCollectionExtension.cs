@@ -5,7 +5,7 @@ using Aprily.Backend.Common.Exceptions;
 using Aprily.Backend.Common.Options;
 using Aprily.Backend.Database;
 using Aprily.Backend.Database.Interceptors;
-using Aprily.Backend.Features.Users.Services.Abstractions;
+using Aprily.Backend.Features.Users.Services;
 using Aprily.Backend.Features.Users.Services.Implements;
 
 using FluentValidation;
@@ -135,6 +135,8 @@ public static class ServiceCollectionExtension
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenProvider, TokenProvider>();
+
+        services.AddScoped<IUserService, UserService>();
 
         return services;
     }

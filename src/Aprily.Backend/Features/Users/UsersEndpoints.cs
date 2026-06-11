@@ -1,5 +1,8 @@
 using Aprily.Backend.Common.Constants;
-using Aprily.Backend.Features.Users.Auth;
+using Aprily.Backend.Features.Users.UseCases.Auth.SignIn;
+using Aprily.Backend.Features.Users.UseCases.Auth.SignOut;
+using Aprily.Backend.Features.Users.UseCases.Auth.SignUp;
+using Aprily.Backend.Features.Users.UseCases.GetUserProfile;
 
 namespace Aprily.Backend.Features.Users;
 
@@ -16,8 +19,10 @@ public static class UsersEndpoints
             .MapGroup("/auth")
             .WithTags("Users Auth");
 
-        auth.MapSignInEndpoint();
         auth.MapSignUpEndpoint();
+        auth.MapSignInEndpoint();
         auth.MapSignOutEndpoint();
+
+        users.MapGetUserProfileEndpoint();
     }
 }

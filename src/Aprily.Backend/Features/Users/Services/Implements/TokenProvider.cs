@@ -4,7 +4,6 @@ using System.Text;
 
 using Aprily.Backend.Common.Options;
 using Aprily.Backend.Entities;
-using Aprily.Backend.Features.Users.Services.Abstractions;
 
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;

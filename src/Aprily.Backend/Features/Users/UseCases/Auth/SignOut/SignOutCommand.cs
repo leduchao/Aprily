@@ -1,28 +1,23 @@
-using Aprily.Backend.Common.Extensions;
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
-using Aprily.Backend.Features.Users.Services.Abstractions;
+using Aprily.Backend.Features.Users.Services;
 
 using MediatR;
 
 using Microsoft.EntityFrameworkCore;
 
-namespace Aprily.Backend.Features.Users.Auth;
+namespace Aprily.Backend.Features.Users.UseCases.Auth.SignOut;
 
-public static class SignOut
+public sealed class SignOutCommand : IRequest<Result>
 {
-    public record Request();
-    public record Response();
-
-    internal record Command() : IRequest<Result>;
-
-    internal sealed class Handler(AppDbContext dbContext, ICurrentUser currentUser, ILogger<Handler> logger) : IRequestHandler<Command, Result>
+    public class SignOutCommandHandler(AppDbContext dbContext, ICurrentUser currentUser, ILogger<SignOutCommandHandler> logger)
+        : IRequestHandler<SignOutCommand, Result>
     {
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ICurrentUser _currentUser = currentUser;
-        private readonly ILogger<Handler> _logger = logger;
+        private readonly ILogger<SignOutCommandHandler> _logger = logger;
 
-        public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
+        public async Task<Result> Handle(SignOutCommand request, CancellationToken cancellationToken)
         {
             var currentUser = await _dbContext.Users.FirstOrDefaultAsync(p => p.EntityId == _currentUser.UserEntityId, cancellationToken);
             if (currentUser is null)
@@ -47,17 +42,5 @@ public static class SignOut
                         .SetProperty(p => p.IsDeleted, true),
                     cancellationToken);
         }
-    }
-
-    internal static void MapSignOutEndpoint(this RouteGroupBuilder groupBuilder)
-    {
-        groupBuilder.MapPost("/sign-out", async (HttpContext httpContext, ISender sender, CancellationToken cancellationToken) =>
-        {
-            var result = await sender.Send(new Command(), cancellationToken);
-
-            httpContext.Response.Cookies.Delete("refreshToken");
-
-            return result.ToHttpResult();
-        });
     }
 }
