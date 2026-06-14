@@ -6,5 +6,5 @@ public record UserBasicInfo(
     string? FullName,
     string Email,
     string? AvatarUrl,
-    DateTime LastLogin,
+    DateTime LastLoginAt,
     bool IsEmailVerified);
