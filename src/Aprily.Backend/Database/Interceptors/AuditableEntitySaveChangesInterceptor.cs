@@ -1,5 +1,3 @@
-using Aprily.Backend.Entities;
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -33,17 +31,39 @@ public sealed class AuditableEntitySaveChangesInterceptor : SaveChangesIntercept
 
         var utcNow = DateTime.UtcNow;
 
-        foreach (var entry in dbContext.ChangeTracker.Entries<AuditableEntity>())
+        foreach (var entry in dbContext.ChangeTracker.Entries())
         {
+            if (entry.State != EntityState.Added &&
+                entry.State != EntityState.Modified)
+            {
+                continue;
+            }
+
+            var hasCreatedAt = entry.Properties.Any(p => p.Metadata.Name == "CreatedAt");
+            var hasUpdatedAt = entry.Properties.Any(p => p.Metadata.Name == "UpdatedAt");
+
+            if (!hasUpdatedAt)
+            {
+                continue;
+            }
+
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.CreatedAt = utcNow;
-                entry.Entity.UpdatedAt = utcNow;
+                if (hasCreatedAt)
+                {
+                    entry.Property("CreatedAt").CurrentValue = utcNow;
+                }
+
+                entry.Property("UpdatedAt").CurrentValue = utcNow;
             }
             else if (entry.State == EntityState.Modified)
             {
-                entry.Property(entity => entity.CreatedAt).IsModified = false;
-                entry.Entity.UpdatedAt = utcNow;
+                if (hasCreatedAt)
+                {
+                    entry.Property("CreatedAt").IsModified = false;
+                }
+
+                entry.Property("UpdatedAt").CurrentValue = utcNow;
             }
         }
     }

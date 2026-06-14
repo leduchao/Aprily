@@ -36,9 +36,7 @@ public static class ServiceCollectionExtension
 
         services.AddDbContext<AppDbContext>((serviceProvider, options) =>
         {
-            options.UseMySql(
-                configuration.GetConnectionString("WriteConnection"),
-                new MySqlServerVersion(new Version()));
+            options.UseNpgsql(configuration.GetConnectionString("WriteConnection"));
 
             options.AddInterceptors(
                 serviceProvider.GetRequiredService<AuditableEntitySaveChangesInterceptor>());

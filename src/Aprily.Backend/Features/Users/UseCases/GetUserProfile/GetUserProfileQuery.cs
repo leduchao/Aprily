@@ -24,15 +24,16 @@ public class GetUserProfileQuery(Guid userId) : IRequest<Result<UserBasicInfo>>
 
             var sql = $"""
                 SELECT
-                    u.EntityId AS Id,
-                    u.Username,
-                    u.FullName,
-                    u.Email,
-                    u.AvatarUrl,
-                    u.LastLoginAt,
-                    u.IsEmailVerified
-                FROM {nameof(AppDbContext.Users)} AS u
-                WHERE u.{nameof(User.EntityId)} = @UserId AND u.IsDeleted = 0;
+                    u.entity_id AS Id,
+                    u.username AS Username,
+                    u.full_name AS FullName,
+                    u.email AS Email,
+                    u.avatar_url AS AvatarUrl,
+                    u.last_sign_in_at AS LastSignInAt,
+                    u.is_email_verified AS IsEmailVerified
+                FROM users AS u
+                WHERE u.entity_id = @UserId
+                AND u.is_deleted = false;
             """;
 
             var user = await conn.QueryFirstOrDefaultAsync<UserBasicInfo>(sql, new { request.UserId });

@@ -36,9 +36,7 @@ public sealed class SignInCommand(string email, string password) : IRequest<Resu
                     new Error("users.sign_in_failed", "Invalid email or password"));
             }
 
-            user.LastLoginAt = DateTime.UtcNow;
-
-            _dbContext.Users.Update(user);
+            user.LastSignInAt = DateTime.UtcNow;
 
             var accessToken = _tokenProvider.GenerateAccessToken(user);
 
@@ -48,7 +46,7 @@ public sealed class SignInCommand(string email, string password) : IRequest<Resu
                 user.FullName,
                 user.Email,
                 user.AvatarUrl,
-                user.LastLoginAt,
+                user.LastSignInAt,
                 user.IsEmailVerified
             );
 
@@ -56,9 +54,10 @@ public sealed class SignInCommand(string email, string password) : IRequest<Resu
 
             var newRefreshToken = new RefreshToken
             {
+                EntityId = Guid.NewGuid(),
                 UserId = user.Id,
                 Token = refreshToken,
-                ExpiryDate = DateTime.UtcNow.AddDays(7),
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
                 IsRevoked = false,
             };
 

@@ -1,18 +1,16 @@
 using System.Data;
 
-using MySqlConnector;
+using Npgsql;
 
 namespace Aprily.Backend.Database.Connection;
 
 public class DbConnectionFactory(IConfiguration configuration) : IDbConnectionFactory
 {
-    private readonly IConfiguration _configuration = configuration;
+    private readonly string _connectionString = configuration.GetConnectionString("ReadConnection")
+        ?? throw new InvalidOperationException("Connection string 'ReadConnection' not found.");
 
     public async Task<IDbConnection> CreateConnection()
     {
-        var connection = new MySqlConnection(_configuration.GetConnectionString("ReadConnection"));
-        await connection.OpenAsync();
-
-        return connection;
+        return new NpgsqlConnection(_connectionString);
     }
 }
