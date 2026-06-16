@@ -1,11 +1,12 @@
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
+using Aprily.Backend.Database.Connection;
+using Aprily.Backend.Entities;
 using Aprily.Backend.Features.Users.Models;
-using Aprily.Backend.Features.Users.Services;
+
+using Dapper;
 
 using MediatR;
-
-using Microsoft.EntityFrameworkCore;
 
 namespace Aprily.Backend.Features.Users.UseCases.GetUserProfile;
 
@@ -13,30 +14,33 @@ public class GetUserProfileQuery(Guid userId) : IRequest<Result<UserBasicInfo>>
 {
     public Guid UserId { get; init; } = userId;
 
-    public class GetUserProfileQueryHandler(AppDbContext dbContext, IUserService userService) : IRequestHandler<GetUserProfileQuery, Result<UserBasicInfo>>
+    public class GetUserProfileQueryHandler(IDbConnectionFactory dbConnectionFactory) : IRequestHandler<GetUserProfileQuery, Result<UserBasicInfo>>
     {
-        private readonly AppDbContext _dbContext = dbContext;
-        private readonly IUserService _userService = userService;
+        private readonly IDbConnectionFactory _dbConnectionFactory = dbConnectionFactory;
 
         public async Task<Result<UserBasicInfo>> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
         {
-            var user = await _dbContext.Users.FirstOrDefaultAsync(p => p.EntityId == request.UserId, cancellationToken);
-            if (user is null)
-            {
-                return Result<UserBasicInfo>.Failure(new Error("users.user_notFound", "User not found"));
-            }
+            using var conn = await _dbConnectionFactory.CreateConnection();
 
-            var result = new UserBasicInfo(
-                user.EntityId,
-                user.Username,
-                user.FullName,
-                user.Email,
-                user.AvatarUrl,
-                user.LastLoginAt,
-                user.IsEmailVerified
-            );
+            var sql = $"""
+                SELECT
+                    u.entity_id AS Id,
+                    u.username AS Username,
+                    u.full_name AS FullName,
+                    u.email AS Email,
+                    u.avatar_url AS AvatarUrl,
+                    u.last_sign_in_at AS LastSignInAt,
+                    u.is_email_verified AS IsEmailVerified
+                FROM users AS u
+                WHERE u.entity_id = @UserId
+                AND u.is_deleted = false;
+            """;
 
-            return Result<UserBasicInfo>.Success(result);
+            var user = await conn.QueryFirstOrDefaultAsync<UserBasicInfo>(sql, new { request.UserId });
+
+            return user is null
+                ? Result<UserBasicInfo>.Failure(new Error("users.user_notFound", "User not found"))
+                : Result<UserBasicInfo>.Success(user);
         }
     }
 }

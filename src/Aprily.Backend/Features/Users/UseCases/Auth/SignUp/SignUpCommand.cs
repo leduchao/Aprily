@@ -39,12 +39,13 @@ public sealed class SignUpCommand(string? fullName, string username, string emai
 
             var user = new User
             {
+                EntityId = Guid.NewGuid(),
                 Username = request.Username,
                 Email = request.Email,
                 PasswordHash = _passwordHasher.Hash(request.Password),
                 FullName = request.FullName,
                 IsEmailVerified = false,
-                LastLoginAt = DateTime.UtcNow
+                LastSignInAt = DateTime.UtcNow,
             };
 
             var accessToken = _tokenProvider.GenerateAccessToken(user);
@@ -55,16 +56,17 @@ public sealed class SignUpCommand(string? fullName, string username, string emai
                 user.FullName,
                 user.Email,
                 user.AvatarUrl,
-                user.LastLoginAt,
+                user.LastSignInAt,
                 user.IsEmailVerified);
 
             var refreshToken = _tokenProvider.GenerateRefreshToken();
 
             var newRefreshToken = new RefreshToken
             {
+                EntityId = Guid.NewGuid(),
                 User = user,
                 Token = refreshToken,
-                ExpiryDate = DateTime.UtcNow.AddDays(7),
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
                 IsRevoked = false,
             };
 

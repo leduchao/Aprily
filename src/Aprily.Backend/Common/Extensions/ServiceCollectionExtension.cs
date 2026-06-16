@@ -4,6 +4,7 @@ using Aprily.Backend.Common.Behaviors;
 using Aprily.Backend.Common.Exceptions;
 using Aprily.Backend.Common.Options;
 using Aprily.Backend.Database;
+using Aprily.Backend.Database.Connection;
 using Aprily.Backend.Database.Interceptors;
 using Aprily.Backend.Features.Users.Services;
 using Aprily.Backend.Features.Users.Services.Implements;
@@ -35,13 +36,13 @@ public static class ServiceCollectionExtension
 
         services.AddDbContext<AppDbContext>((serviceProvider, options) =>
         {
-            options.UseMySql(
-                configuration.GetConnectionString("MySql"),
-                new MySqlServerVersion(new Version()));
+            options.UseNpgsql(configuration.GetConnectionString("WriteConnection"));
 
             options.AddInterceptors(
                 serviceProvider.GetRequiredService<AuditableEntitySaveChangesInterceptor>());
         });
+
+        services.AddTransient<IDbConnectionFactory, DbConnectionFactory>();
 
         return services;
     }
