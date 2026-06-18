@@ -1,5 +1,5 @@
 import { MessageBubble } from "@/components/thread-details/message-bubble"
-import type { ChatMessage } from "@/data/threads"
+import type { ChatMessage } from "@/lib/chat-api"
 import { useLayoutEffect, useRef } from "react"
 
 type MessageListProps = {
@@ -30,9 +30,11 @@ export const MessageList = ({ messages }: MessageListProps) => {
             <MessageBubble key={message.id} message={message} />
           ))}
 
-          <p className="pr-2 text-right text-xs text-muted-foreground">
-            Delivered
-          </p>
+          {messages.length > 0 && (
+            <p className="pr-2 text-right text-xs text-muted-foreground">
+              Delivered
+            </p>
+          )}
         </div>
       </div>
     </section>

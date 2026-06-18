@@ -1,10 +1,12 @@
 import { ThreadItem } from "@/components/home/thread-item"
-import { threads } from "@/data/threads"
+import { useConversationsQuery } from "@/lib/chat-api"
 import { cn } from "@/lib/utils"
 import { Link } from "@tanstack/react-router"
-import { Ellipsis } from "lucide-react"
+import { Ellipsis, LoaderCircle } from "lucide-react"
 
 export const ThreadList = () => {
+  const conversationsQuery = useConversationsQuery()
+
   return (
     <section className="min-h-0 flex-1 scrollbar-none overflow-x-hidden overflow-y-auto">
       <div className="sticky top-0 z-10 flex justify-between border-b border-border/60 bg-background px-4 py-2">
@@ -13,20 +15,57 @@ export const ThreadList = () => {
       </div>
 
       <div className="bg-background shadow-sm">
-        {threads.map((thread, index) => (
+        {conversationsQuery.isLoading && (
+          <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
+            <LoaderCircle className="animate-spin" />
+            Loading chats
+          </div>
+        )}
+
+        {conversationsQuery.isError && (
+          <p className="px-4 py-6 text-sm text-muted-foreground">
+            Could not load conversations.
+          </p>
+        )}
+
+        {conversationsQuery.data?.length === 0 && (
+          <p className="px-4 py-6 text-sm text-muted-foreground">
+            No conversations yet.
+          </p>
+        )}
+
+        {conversationsQuery.data?.map((conversation, index) => (
           <Link
-            key={`${thread.name}-${index}`}
+            key={conversation.id}
             to="/threads/$threadId"
-            params={{ threadId: thread.id }}
-            className={cn(
-              "block",
-              index > 0 && "border-t border-border/60"
-            )}
+            params={{ threadId: conversation.id }}
+            className={cn("block", index > 0 && "border-t border-border/60")}
           >
-            <ThreadItem {...thread} />
+            <ThreadItem
+              id={conversation.id}
+              avatar={conversation.otherUser.avatarUrl ?? ""}
+              name={
+                conversation.otherUser.fullName ||
+                conversation.otherUser.username
+              }
+              message={conversation.lastMessage?.content ?? "Say hello"}
+              time={formatConversationTime(conversation.lastMessageAt)}
+              unreadCount={conversation.unreadCount}
+            />
           </Link>
         ))}
       </div>
     </section>
   )
+}
+
+const formatConversationTime = (value: string | null) => {
+  if (!value) {
+    return ""
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value))
 }
