@@ -1,12 +1,13 @@
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
-using Aprily.Backend.Entities;
 using Aprily.Backend.Features.Users.Models;
 using Aprily.Backend.Features.Users.Services;
 
 using MediatR;
 
 using Microsoft.EntityFrameworkCore;
+
+using RefreshTokenEntity = Aprily.Backend.Entities.RefreshToken;
 
 namespace Aprily.Backend.Features.Users.UseCases.Auth.SignIn;
 
@@ -52,7 +53,7 @@ public sealed class SignInCommand(string email, string password) : IRequest<Resu
 
             var refreshToken = _tokenProvider.GenerateRefreshToken();
 
-            var newRefreshToken = new RefreshToken
+            var newRefreshToken = new RefreshTokenEntity
             {
                 EntityId = Guid.NewGuid(),
                 UserId = user.Id,

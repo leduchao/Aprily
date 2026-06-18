@@ -60,7 +60,7 @@ export const SignInPage = () => {
     <main className="flex h-dvh w-dvw max-w-full flex-col overflow-hidden bg-background">
       <section className="flex min-h-0 flex-1 flex-col justify-center px-5 py-6">
         <div className="mb-8">
-          <p className="text-sm font-medium text-muted-foreground">Aprily</p>
+          <p className="font-medium text-muted-foreground">Aprily</p>
           <h1 className="mt-2 text-4xl font-bold tracking-normal">
             Welcome back
           </h1>
@@ -78,6 +78,7 @@ export const SignInPage = () => {
               id="email"
               type="email"
               autoComplete="email"
+              className="h-12 rounded-full px-4"
               aria-invalid={Boolean(errors.email)}
               {...register("email")}
             />
@@ -95,7 +96,7 @@ export const SignInPage = () => {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                className="pr-10"
+                className="h-12 rounded-full px-4 pr-12"
                 aria-invalid={Boolean(errors.password)}
                 {...register("password")}
               />
@@ -103,7 +104,7 @@ export const SignInPage = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute top-0 right-0"
+                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full"
                 onClick={() => setShowPassword((value) => !value)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -124,7 +125,7 @@ export const SignInPage = () => {
           )}
 
           <Button
-            className="mt-2 w-full"
+            className="mt-2 h-12 w-full rounded-full text-base"
             size="lg"
             disabled={signInMutation.isPending}
           >

@@ -44,6 +44,18 @@ export const signUp = async (request: SignUpRequest) => {
   )
 }
 
+export const refreshToken = async () => {
+  return apiClient.post<AuthPayload>("/users/auth/refresh-token", undefined, {
+    auth: false,
+  })
+}
+
+export const signOut = async () => {
+  return apiClient.post<void>("/users/auth/sign-out", undefined, {
+    auth: false,
+  })
+}
+
 export const useSignInMutation = () => {
   return useMutation({
     mutationFn: signIn,
@@ -53,6 +65,12 @@ export const useSignInMutation = () => {
 export const useSignUpMutation = () => {
   return useMutation({
     mutationFn: signUp,
+  })
+}
+
+export const useSignOutMutation = () => {
+  return useMutation({
+    mutationFn: signOut,
   })
 }
 
