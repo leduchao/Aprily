@@ -10,7 +10,9 @@ import { useParams } from "@tanstack/react-router"
 import { useState } from "react"
 
 export const ThreadDetailPage = () => {
-  const { threadId } = useParams({ from: "/threads/$threadId" })
+  const { threadId } = useParams({
+    from: "/_authenticated/threads/$threadId",
+  })
   const thread = getThreadById(threadId) ?? getThreadById("zaire-dorwart")
   const [messagesByThread, setMessagesByThread] = useState<
     Record<string, ChatMessage[]>

@@ -19,13 +19,37 @@ namespace Aprily.Backend.Common.Extensions;
 
 public static class ServiceCollectionExtension
 {
+    public const string CorsPolicyName = "AprilyClient";
+
     public static IServiceCollection AddServiceCollection(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddApplicationOptions(configuration);
+        services.AddCorsServices();
         services.AddDatabaseServices(configuration);
         services.AddAuthServices(configuration);
         services.AddApplicationServices(configuration);
         services.AddExceptionHandlerServices();
+
+        return services;
+    }
+
+    private static IServiceCollection AddCorsServices(this IServiceCollection services)
+    {
+        services.AddCors(options =>
+        {
+            options.AddPolicy(CorsPolicyName, policy =>
+            {
+                policy
+                    .WithOrigins(
+                        "http://localhost:5173",
+                        "http://127.0.0.1:5173",
+                        "http://localhost:5174",
+                        "http://127.0.0.1:5174")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            });
+        });
 
         return services;
     }

@@ -23,6 +23,8 @@ app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
 
+app.UseCors(ServiceCollectionExtension.CorsPolicyName);
+
 app.UseAuthentication();
 app.UseAuthorization();
 
