@@ -1,81 +1,73 @@
 # Aprily
 
-Aprily is a mobile-first chat application with an ASP.NET Core backend and a
-React web client. The backend currently supports user authentication and
-real-time, user-to-user messaging through REST endpoints and SignalR.
+Aprily is a chat-style application with an ASP.NET Core backend, PostgreSQL
+database, and a React/Vite client. The repository currently contains one
+backend project, one client project, and a small xUnit test project.
 
 ## Current Status
 
-- User sign-up, sign-in, token refresh, sign-out, and profile lookup
-- JWT authentication with HTTP-only refresh-token cookies
-- Direct conversations and persisted message history
-- Real-time direct-message delivery through SignalR
-- Cursor-based pagination for conversations and messages
-- English and Vietnamese web UI
-- Mobile-focused responsive interface
-
-Authentication in `Aprily.Web` is connected to the API. The current
-conversation and thread screens still use mock data and have not yet been
-connected to the chat REST endpoints or SignalR hub.
-
-## Known Limitations
-
-- The web chat screens still read from `src/Aprily.Web/src/data/chat.ts`.
-- The web project does not yet include a SignalR JavaScript client.
-- `pnpm lint` currently reports existing React hook, fast-refresh, and unused
-  symbol errors.
-- `pnpm build` currently fails on unused route components and an unused theme
-  import.
+- Backend user sign-up, sign-in, sign-out, and profile lookup endpoints
+- JWT bearer authentication with refresh tokens stored in an HTTP-only cookie
+- PostgreSQL schema for users and refresh tokens
+- EF Core `AppDbContext` plus Dapper-ready read connection factory
+- React client with mobile-oriented home, login, and thread detail screens
+- Client thread/message data is currently local mock data
+- Chat backend is only scaffolded; no chat routes are mapped yet
 
 ## Technology
 
 ### Backend
 
 - .NET 10 and ASP.NET Core Minimal APIs
-- MediatR with command/query handlers
+- MediatR
 - FluentValidation
 - Entity Framework Core 10
+- Dapper
 - PostgreSQL through Npgsql
-- SignalR
 - JWT bearer authentication
 - xUnit
 
-### Web
+### Client
 
 - React 19 and TypeScript
 - Vite
-- Material UI
 - TanStack Router and TanStack Query
-- Zustand
+- Tailwind CSS 4
+- shadcn/ui-style components with Radix UI primitives
 - React Hook Form and Zod
-- i18next
+- Zustand
 - pnpm
 
 ## Repository Structure
 
 ```text
 Aprily.slnx
+README.md
 src/
-  Aprily.Api/             HTTP endpoints, SignalR hubs, middleware
-  Aprily.Application/     Commands, queries, handlers, validation, abstractions
-  Aprily.Domain/          Domain entities
-  Aprily.Infrastructure/  EF Core, PostgreSQL, repositories, JWT services
-  Aprily.SharedKernel/    Shared entities and Result/Error types
-  Aprily.Web/             React and Vite web application
+  Aprily.Backend/
+    Common/          shared constants, options, results, exceptions, extensions
+    Database/        DbContext, connection factory, interceptor, init SQL
+    Entities/        User, RefreshToken, AuditableEntity
+    Features/
+      Users/         auth, profile endpoints, user services
+      Chat/          chat endpoint group placeholder
+  Aprily.Client/
+    src/
+      components/    layout, home, thread detail, ui components
+      data/          local mock thread data
+      pages/         home, login, thread detail pages
+      routes/        TanStack Router file routes
 tests/
-  Aprily.Test/            Backend tests
+  Aprily.Test/       backend unit tests
 ```
-
-The .NET solution does not include `Aprily.Web`; run the web application
-separately with pnpm.
 
 ## Prerequisites
 
 - .NET SDK 10
 - PostgreSQL
-- Node.js 20 or newer
+- Node.js
 - pnpm
-- `dotnet-ef` 10 for migrations
+- `dotnet-ef` 10, if you want to create migrations or update the database with EF
 
 Install the EF Core CLI if needed:
 
@@ -85,215 +77,158 @@ dotnet tool install --global dotnet-ef
 
 ## Local Setup
 
-### 1. Configure PostgreSQL and JWT
+### 1. Configure PostgreSQL
 
-Development configuration is read from:
+Development settings are in:
 
 ```text
-src/Aprily.Api/appsettings.Development.json
+src/Aprily.Backend/appsettings.Development.json
 ```
 
-The checked-in development connection expects:
+The checked-in development connection strings expect:
 
 ```text
 Host=localhost
 Port=5432
-Database=aprily
+Database=aprily-db
 Username=postgres
 Password=postgres
 ```
 
-Update `ConnectionStrings:Default` and the `Jwt` settings for your local
-environment. Use user secrets or environment variables for real credentials;
-do not reuse the development JWT secret in production.
+Create the database first. In PostgreSQL, `CREATE DATABASE` must be run by
+itself, outside a transaction:
 
-Equivalent environment variable names include:
-
-```bash
-ConnectionStrings__Default="Host=localhost;Port=5432;Database=aprily;Username=postgres;Password=postgres"
-Jwt__Secret="replace-with-a-long-random-secret"
-Jwt__Issuer="aprily"
-Jwt__Audience="aprily"
-Jwt__ExpirationInMinutes="10"
+```sql
+CREATE DATABASE "aprily-db";
 ```
 
-### 2. Restore and migrate the backend
+Then connect to `"aprily-db"` and run:
+
+```text
+src/Aprily.Backend/Database/InitDatabase.sql
+```
+
+`InitDatabase.sql` creates the `users` and `refresh_tokens` tables. PostgreSQL
+does not support MySQL-style `USE database`, so make sure your SQL client is
+connected to `aprily-db` before running the table script.
+
+### 2. Restore the Backend
 
 From the repository root:
 
 ```bash
 dotnet restore Aprily.slnx
-
-dotnet ef database update \
-  --project src/Aprily.Infrastructure/Aprily.Infrastructure.csproj \
-  --startup-project src/Aprily.Api/Aprily.Api.csproj
 ```
 
-### 3. Run the API
+### 3. Run the Backend
 
 ```bash
-dotnet run --project src/Aprily.Api/Aprily.Api.csproj --launch-profile http
+dotnet run --project src/Aprily.Backend/Aprily.Backend.csproj --launch-profile http
 ```
 
-The HTTP profile listens at:
+The HTTP profile listens on:
 
 ```text
-http://localhost:5016
+http://localhost:5113
 ```
 
 In Development, the OpenAPI document is available at:
 
 ```text
-http://localhost:5016/openapi/v1.json
+http://localhost:5113/openapi/v1.json
 ```
 
-### 4. Configure and run the web client
+### 4. Run the Client
 
 ```bash
-cd src/Aprily.Web
-cp .env.example .env
-```
-
-Set the local API base URL in `.env`:
-
-```bash
-VITE_API_BASE_URL=http://localhost:5016/api
-```
-
-The client appends `/v1` to this value when making requests.
-
-Install dependencies and start Vite:
-
-```bash
+cd src/Aprily.Client
 pnpm install
 pnpm dev
 ```
 
-The frontend runs at `http://localhost:5173`, which is the origin currently
-allowed by the API CORS policy.
+Vite will print the local client URL, normally:
 
-## API
+```text
+http://localhost:5173
+```
+
+## Backend API
 
 All versioned REST endpoints use the `/api/v1` prefix.
-
-### Authentication and Users
 
 | Method | Route | Authentication |
 | --- | --- | --- |
 | `POST` | `/api/v1/users/auth/sign-up` | Anonymous |
 | `POST` | `/api/v1/users/auth/sign-in` | Anonymous |
-| `POST` | `/api/v1/users/auth/refresh-token` | Refresh-token cookie |
 | `POST` | `/api/v1/users/auth/sign-out` | Bearer token |
-| `GET` | `/api/v1/users/get-user-profile?email=...` | Bearer token |
+| `GET` | `/api/v1/users/{userId}` | Anonymous |
 
-The access token is returned in the response body. The refresh token is stored
-in a secure, HTTP-only cookie.
+Sign-up request:
 
-### Direct Chat
-
-| Method | Route | Description |
-| --- | --- | --- |
-| `GET` | `/api/v1/chat/conversations` | List direct conversations |
-| `GET` | `/api/v1/chat/direct-messages/{otherUserId}` | Load message history |
-| `POST` | `/api/v1/chat/direct-messages` | Send a direct message |
-
-Chat endpoints require a bearer token.
-
-The conversation and history endpoints accept:
-
-- `take`: page size from 1 to 100
-- `before`: an ISO 8601 UTC timestamp used as the pagination cursor
-
-Example send request:
-
-```http
-POST /api/v1/chat/direct-messages
-Authorization: Bearer <access-token>
-Content-Type: application/json
-
+```json
 {
-  "recipientUserId": "00000000-0000-0000-0000-000000000000",
-  "content": "Hello from Aprily"
+  "fullName": "April Ly",
+  "username": "aprily",
+  "email": "aprily@example.com",
+  "password": "your-password"
 }
 ```
 
-Additional ready-to-run examples are in
-`src/Aprily.Api/Aprily.Api.http`.
+Sign-in request:
 
-## SignalR
+```json
+{
+  "email": "aprily@example.com",
+  "password": "your-password"
+}
+```
 
-The authenticated chat hub is available at:
+Sign-up and sign-in return an access token in the response body and set a
+`refreshToken` cookie.
+
+## Client Routes
+
+| Route | Screen |
+| --- | --- |
+| `/` | Home thread list |
+| `/login` | Login page |
+| `/threads/$threadId` | Thread detail page |
+
+The current client UI uses local data from:
 
 ```text
-/hubs/chat
+src/Aprily.Client/src/data/threads.ts
 ```
 
-JWT authentication for WebSockets uses SignalR's `access_token` query
-parameter. A JavaScript client should normally provide it with
-`accessTokenFactory`.
+## Useful Commands
 
-Hub methods:
-
-| Method | Arguments |
-| --- | --- |
-| `SendDirectMessage` | `recipientUserId`, `content` |
-| `GetDirectMessages` | `otherUserId`, `take`, `before` |
-
-Client event:
-
-| Event | Payload |
-| --- | --- |
-| `ReceiveDirectMessage` | `ChatMessageResponse` |
-
-Messages sent through the REST endpoint are also published to connected
-SignalR clients.
-
-## Database Migrations
-
-Create a migration from the repository root:
-
-```bash
-dotnet ef migrations add <MigrationName> \
-  --project src/Aprily.Infrastructure/Aprily.Infrastructure.csproj \
-  --startup-project src/Aprily.Api/Aprily.Api.csproj \
-  --output-dir Database/Migrations
-```
-
-Apply migrations:
-
-```bash
-dotnet ef database update \
-  --project src/Aprily.Infrastructure/Aprily.Infrastructure.csproj \
-  --startup-project src/Aprily.Api/Aprily.Api.csproj
-```
-
-## Verification
-
-Build and test the backend:
+Backend:
 
 ```bash
 dotnet build Aprily.slnx
-dotnet test tests/Aprily.Test/Aprily.Test.csproj
+dotnet test Aprily.slnx
+dotnet run --project src/Aprily.Backend/Aprily.Backend.csproj --launch-profile http
 ```
 
-Check the web client:
+Client:
 
 ```bash
-cd src/Aprily.Web
-pnpm lint
+cd src/Aprily.Client
+pnpm dev
 pnpm build
+pnpm lint
+pnpm typecheck
+pnpm format
 ```
 
-The backend build currently succeeds. The web checks are the desired
-verification commands, but they currently fail for the issues listed under
-Known Limitations.
+EF Core migration commands are also documented in:
 
-## Development Notes
+```text
+src/Aprily.Backend/MIGRATION.md
+```
 
-- API commands and queries live in `Aprily.Application`.
-- API endpoints and SignalR hubs should remain thin transport adapters.
-- EF Core access belongs in `Aprily.Infrastructure` repositories.
-- Public user, thread, and message identifiers are GUIDs; integer IDs remain
-  internal database keys.
-- The access token is persisted by the current web client in Zustand-backed
-  local storage, while the refresh token is managed as an HTTP-only cookie.
+Db-first scaffold notes are in:
+
+```text
+src/Aprily.Backend/SCAFFOLD.md
+```
