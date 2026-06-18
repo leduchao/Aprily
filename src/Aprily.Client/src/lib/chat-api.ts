@@ -49,6 +49,17 @@ export type OpenDirectConversationResponse = {
   conversationId: string
 }
 
+export type MarkConversationAsReadInput = {
+  conversationId: string
+  messageId: string
+}
+
+export type MarkConversationAsReadResponse = {
+  conversationId: string
+  lastReadMessageId: string
+  lastReadAt: string
+}
+
 export const chatQueryKeys = {
   all: ["chat"] as const,
   conversations: () => [...chatQueryKeys.all, "conversations"] as const,
@@ -78,6 +89,17 @@ export const sendDirectMessage = async (input: SendDirectMessageInput) => {
     "/chat/direct-messages",
     input
   )
+}
+
+export const markConversationAsRead = async (
+  input: MarkConversationAsReadInput
+) => {
+  return apiClient.post<
+    MarkConversationAsReadResponse,
+    { messageId: string }
+  >(`/chat/conversations/${input.conversationId}/read`, {
+    messageId: input.messageId,
+  })
 }
 
 export const useConversationsQuery = () => {
@@ -121,6 +143,30 @@ export const useSendDirectMessageMutation = () => {
           queryKey: chatQueryKeys.messages(response.conversationId),
         }),
       ])
+    },
+  })
+}
+
+export const useMarkConversationAsReadMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: markConversationAsRead,
+    onSuccess: (response) => {
+      queryClient.setQueryData<Conversation[]>(
+        chatQueryKeys.conversations(),
+        (currentConversations) => {
+          if (!currentConversations) {
+            return currentConversations
+          }
+
+          return currentConversations.map((conversation) =>
+            conversation.id === response.conversationId
+              ? { ...conversation, unreadCount: 0 }
+              : conversation
+          )
+        }
+      )
     },
   })
 }

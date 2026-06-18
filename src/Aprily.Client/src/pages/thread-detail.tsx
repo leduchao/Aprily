@@ -4,10 +4,12 @@ import { ThreadHeader } from "@/components/thread-details/thread-header"
 import {
   useConversationMessagesQuery,
   useConversationsQuery,
+  useMarkConversationAsReadMutation,
   useSendDirectMessageMutation,
 } from "@/lib/chat-api"
 import { useParams } from "@tanstack/react-router"
 import { LoaderCircle } from "lucide-react"
+import { useEffect, useRef } from "react"
 
 export const ThreadDetailPage = () => {
   const { threadId } = useParams({
@@ -17,12 +19,31 @@ export const ThreadDetailPage = () => {
   const conversationsQuery = useConversationsQuery()
   const messagesQuery = useConversationMessagesQuery(threadId)
   const sendMessageMutation = useSendDirectMessageMutation()
+  const markAsReadMutation = useMarkConversationAsReadMutation()
+  const lastMarkedMessageIdRef = useRef<string | null>(null)
 
   const conversation = conversationsQuery.data?.find(
     (item) => item.id === threadId
   )
 
   const messages = [...(messagesQuery.data ?? [])].reverse()
+  const latestMessage = messagesQuery.data?.[0]
+
+  useEffect(() => {
+    if (!latestMessage) {
+      return
+    }
+
+    if (lastMarkedMessageIdRef.current === latestMessage.id) {
+      return
+    }
+
+    lastMarkedMessageIdRef.current = latestMessage.id
+    markAsReadMutation.mutate({
+      conversationId: threadId,
+      messageId: latestMessage.id,
+    })
+  }, [latestMessage, markAsReadMutation, threadId])
 
   const handleSendMessage = (content: string) => {
     if (!conversation) {
