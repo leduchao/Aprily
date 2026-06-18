@@ -80,7 +80,7 @@ export const Footer = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="size-12 rounded-full text-foreground"
+              className="size-12 rounded-full"
               onClick={() => void navigate({ to: "/" })}
             >
               <Home className="size-7" />
@@ -103,7 +103,7 @@ export const Footer = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="size-12 rounded-full text-muted-foreground"
+              className="size-12 rounded-full"
               title="Profile"
               onClick={() => void navigate({ to: "/profile" })}
             >

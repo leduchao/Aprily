@@ -9,21 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as PublicRouteImport } from './routes/public'
+import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as GuestSignUpRouteImport } from './routes/_guest/sign-up'
+import { Route as GuestSignInRouteImport } from './routes/_guest/sign-in'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedThreadsThreadIdRouteImport } from './routes/_authenticated/threads/$threadId'
 
-const SignUpRoute = SignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
+const PublicRoute = PublicRouteImport.update({
+  id: '/public',
+  path: '/public',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
+const GuestRoute = GuestRouteImport.update({
+  id: '/_guest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -34,6 +35,16 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const GuestSignUpRoute = GuestSignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => GuestRoute,
+} as any)
+const GuestSignInRoute = GuestSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => GuestRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
@@ -49,62 +60,80 @@ const AuthenticatedThreadsThreadIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
+  '/public': typeof PublicRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/sign-in': typeof GuestSignInRoute
+  '/sign-up': typeof GuestSignUpRoute
   '/threads/$threadId': typeof AuthenticatedThreadsThreadIdRoute
 }
 export interface FileRoutesByTo {
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
+  '/public': typeof PublicRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/sign-in': typeof GuestSignInRoute
+  '/sign-up': typeof GuestSignUpRoute
   '/threads/$threadId': typeof AuthenticatedThreadsThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
+  '/_guest': typeof GuestRouteWithChildren
+  '/public': typeof PublicRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_guest/sign-in': typeof GuestSignInRoute
+  '/_guest/sign-up': typeof GuestSignUpRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/threads/$threadId': typeof AuthenticatedThreadsThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/sign-up' | '/profile' | '/threads/$threadId'
+  fullPaths:
+    | '/'
+    | '/public'
+    | '/profile'
+    | '/sign-in'
+    | '/sign-up'
+    | '/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/sign-in' | '/sign-up' | '/profile' | '/' | '/threads/$threadId'
+  to:
+    | '/'
+    | '/public'
+    | '/profile'
+    | '/sign-in'
+    | '/sign-up'
+    | '/threads/$threadId'
   id:
     | '__root__'
     | '/_authenticated'
-    | '/sign-in'
-    | '/sign-up'
+    | '/_guest'
+    | '/public'
     | '/_authenticated/profile'
+    | '/_guest/sign-in'
+    | '/_guest/sign-up'
     | '/_authenticated/'
     | '/_authenticated/threads/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  SignInRoute: typeof SignInRoute
-  SignUpRoute: typeof SignUpRoute
+  GuestRoute: typeof GuestRouteWithChildren
+  PublicRoute: typeof PublicRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sign-up': {
-      id: '/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SignUpRouteImport
+    '/public': {
+      id: '/public'
+      path: '/public'
+      fullPath: '/public'
+      preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
+    '/_guest': {
+      id: '/_guest'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof GuestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -120,6 +149,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_guest/sign-up': {
+      id: '/_guest/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof GuestSignUpRouteImport
+      parentRoute: typeof GuestRoute
+    }
+    '/_guest/sign-in': {
+      id: '/_guest/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof GuestSignInRouteImport
+      parentRoute: typeof GuestRoute
     }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
@@ -154,10 +197,22 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface GuestRouteChildren {
+  GuestSignInRoute: typeof GuestSignInRoute
+  GuestSignUpRoute: typeof GuestSignUpRoute
+}
+
+const GuestRouteChildren: GuestRouteChildren = {
+  GuestSignInRoute: GuestSignInRoute,
+  GuestSignUpRoute: GuestSignUpRoute,
+}
+
+const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  SignInRoute: SignInRoute,
-  SignUpRoute: SignUpRoute,
+  GuestRoute: GuestRouteWithChildren,
+  PublicRoute: PublicRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
