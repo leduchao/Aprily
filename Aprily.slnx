@@ -1,11 +1,6 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Aprily.Api/Aprily.Api.csproj" />
-    <Project Path="src/Aprily.Application/Aprily.Application.csproj" />
     <Project Path="src/Aprily.Backend/Aprily.Backend.csproj" />
-    <Project Path="src/Aprily.Domain/Aprily.Domain.csproj" />
-    <Project Path="src/Aprily.Infrastructure/Aprily.Infrastructure.csproj" />
-    <Project Path="src/Aprily.SharedKernel/Aprily.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aprily.Test/Aprily.Test.csproj" />
