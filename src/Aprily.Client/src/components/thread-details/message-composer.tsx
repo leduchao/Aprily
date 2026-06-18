@@ -18,6 +18,7 @@ import {
 
 type MessageComposerProps = {
   onSend: (message: string) => void
+  disabled?: boolean
 }
 
 type SelectedAttachment = {
@@ -26,7 +27,10 @@ type SelectedAttachment = {
   previewUrl?: string
 }
 
-export const MessageComposer = ({ onSend }: MessageComposerProps) => {
+export const MessageComposer = ({
+  onSend,
+  disabled = false,
+}: MessageComposerProps) => {
   const [message, setMessage] = useState("")
   const [isInputFocused, setIsInputFocused] = useState(false)
   const [selectedAttachments, setSelectedAttachments] = useState<
@@ -36,7 +40,7 @@ export const MessageComposer = ({ onSend }: MessageComposerProps) => {
     useState<SelectedAttachment | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const selectedAttachmentsRef = useRef<SelectedAttachment[]>([])
-  const canSend = message.trim().length > 0
+  const canSend = message.trim().length > 0 && !disabled
 
   useEffect(() => {
     selectedAttachmentsRef.current = selectedAttachments

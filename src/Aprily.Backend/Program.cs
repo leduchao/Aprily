@@ -1,5 +1,6 @@
 using Aprily.Backend.Common.Extensions;
 using Aprily.Backend.Features.Chat;
+using Aprily.Backend.Features.Chat.Hubs;
 using Aprily.Backend.Features.Friends;
 using Aprily.Backend.Features.Users;
 
@@ -30,7 +31,9 @@ app.UseAuthorization();
 
 app.MapUsersEndpoints();
 app.MapFriendsEndpoints();
+
 app.MapChatEndpoints();
+app.MapHub<ChatHub>(ChatHub.HubPath);
 
 app.MapGet("/", () => Results.Ok(new { greetingMessage = "Welcome to Aprily" }))
     .WithName("Greeting");

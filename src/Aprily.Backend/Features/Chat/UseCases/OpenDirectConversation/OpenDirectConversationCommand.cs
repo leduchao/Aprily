@@ -2,8 +2,6 @@ using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
 using Aprily.Backend.Database.Connection;
 using Aprily.Backend.Entities;
-using Aprily.Backend.Features.Chat.Hubs;
-using Aprily.Backend.Features.Chat.Models;
 using Aprily.Backend.Features.Users.Services;
 
 using Dapper;
@@ -11,26 +9,23 @@ using Dapper;
 using MediatR;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.SignalR;
 
 using Npgsql;
 
-namespace Aprily.Backend.Features.Chat.UseCases.SendDirectMessage;
+namespace Aprily.Backend.Features.Chat.UseCases.OpenDirectConversation;
 
-public record SendDirectMessageResponse(Guid ConversationId, ChatMessageResponse Message);
+public record OpenDirectConversationResponse(Guid ConversationId);
 
-public sealed class SendDirectMessageCommand(Guid recipientUserId, string content)
-    : IRequest<Result<SendDirectMessageResponse>>
+public sealed class OpenDirectConversationCommand(Guid recipientUserId)
+    : IRequest<Result<OpenDirectConversationResponse>>
 {
     public Guid RecipientUserId { get; init; } = recipientUserId;
-    public string Content { get; init; } = content;
 
     public sealed class Handler(
         AppDbContext dbContext,
         ICurrentUser currentUser,
-        IDbConnectionFactory dbConnectionFactory,
-        IHubContext<ChatHub> chatHub)
-        : IRequestHandler<SendDirectMessageCommand, Result<SendDirectMessageResponse>>
+        IDbConnectionFactory dbConnectionFactory)
+        : IRequestHandler<OpenDirectConversationCommand, Result<OpenDirectConversationResponse>>
     {
         private const string DirectConversationType = "direct";
         private const string UniqueViolation = "23505";
@@ -38,20 +33,17 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ICurrentUser _currentUser = currentUser;
         private readonly IDbConnectionFactory _dbConnectionFactory = dbConnectionFactory;
-        private readonly IHubContext<ChatHub> _chatHub = chatHub;
 
-        public async Task<Result<SendDirectMessageResponse>> Handle(
-            SendDirectMessageCommand request,
+        public async Task<Result<OpenDirectConversationResponse>> Handle(
+            OpenDirectConversationCommand request,
             CancellationToken cancellationToken)
         {
-            var content = request.Content.Trim();
-
             var sender = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.EntityId == _currentUser.UserEntityId && !u.IsDeleted, cancellationToken);
 
             if (sender is null)
             {
-                return Result<SendDirectMessageResponse>.Failure(
+                return Result<OpenDirectConversationResponse>.Failure(
                     new Error("users.user_notFound", "User not found"));
             }
 
@@ -60,14 +52,14 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
 
             if (recipient is null)
             {
-                return Result<SendDirectMessageResponse>.Failure(
+                return Result<OpenDirectConversationResponse>.Failure(
                     new Error("chat.recipient_not_found", "Recipient user not found"));
             }
 
             if (sender.Id == recipient.Id)
             {
-                return Result<SendDirectMessageResponse>.Failure(
-                    new Error("chat.cannot_message_self", "Cannot send a direct message to yourself"));
+                return Result<OpenDirectConversationResponse>.Failure(
+                    new Error("chat.cannot_message_self", "Cannot open a direct conversation with yourself"));
             }
 
             var (userLowId, userHighId) = sender.Id < recipient.Id
@@ -76,8 +68,8 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
 
             if (!await AreFriends(userLowId, userHighId, cancellationToken))
             {
-                return Result<SendDirectMessageResponse>.Failure(
-                    new Error("chat.not_friends", "You can only send direct messages to friends"));
+                return Result<OpenDirectConversationResponse>.Failure(
+                    new Error("chat.not_friends", "You can only start chats with friends"));
             }
 
             var conversation = await GetOrCreateDirectConversation(
@@ -89,57 +81,12 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
 
             if (conversation is null)
             {
-                return Result<SendDirectMessageResponse>.Failure(
-                    new Error("chat.send_failed", "Failed to create or load the direct conversation"));
+                return Result<OpenDirectConversationResponse>.Failure(
+                    new Error("chat.open_failed", "Failed to create or load the direct conversation"));
             }
 
-            var now = DateTime.UtcNow;
-            var message = new Message
-            {
-                EntityId = Guid.NewGuid(),
-                ConversationId = conversation.Id,
-                SenderUserId = sender.Id,
-                Content = content,
-                SentAt = now,
-                CreatedAt = now,
-                UpdatedAt = now,
-                IsDeleted = false
-            };
-
-            await _dbContext.Messages.AddAsync(message, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            conversation.LastMessageId = message.Id;
-            conversation.LastMessageAt = message.SentAt;
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            var responseMessage = new ChatMessageResponse(
-                message.EntityId,
-                conversation.EntityId,
-                sender.EntityId,
-                sender.Username,
-                sender.AvatarUrl,
-                message.Content,
-                message.SentAt,
-                true);
-
-            var recipientMessage = responseMessage with { IsMine = false };
-
-            await _chatHub.Clients
-                .Group(ChatHub.UserGroup(sender.EntityId))
-                .SendAsync("messageReceived", responseMessage, cancellationToken);
-
-            await _chatHub.Clients
-                .Group(ChatHub.UserGroup(recipient.EntityId))
-                .SendAsync("messageReceived", recipientMessage, cancellationToken);
-
-            await _chatHub.Clients
-                .Groups(ChatHub.UserGroup(sender.EntityId), ChatHub.UserGroup(recipient.EntityId))
-                .SendAsync("conversationUpdated", conversation.EntityId, cancellationToken);
-
-            return Result<SendDirectMessageResponse>.Success(
-                new SendDirectMessageResponse(conversation.EntityId, responseMessage));
+            return Result<OpenDirectConversationResponse>.Success(
+                new OpenDirectConversationResponse(conversation.EntityId));
         }
 
         private async Task<Conversation?> GetOrCreateDirectConversation(

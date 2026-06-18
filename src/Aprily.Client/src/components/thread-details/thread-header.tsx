@@ -10,7 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import type { Thread } from "@/data/threads"
 import { Link } from "@tanstack/react-router"
 import {
   ArrowLeft,
@@ -35,8 +34,14 @@ const threadActions = [
   },
 ]
 
+export type ThreadHeaderInfo = {
+  avatarUrl: string | null
+  name: string
+  isOnline?: boolean
+}
+
 type ThreadHeaderProps = {
-  thread: Thread
+  thread: ThreadHeaderInfo
 }
 
 export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
@@ -60,7 +65,7 @@ export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
       </Button>
 
       <Avatar className="size-11">
-        <AvatarImage src={thread.avatar} alt={thread.name} />
+        <AvatarImage src={thread.avatarUrl ?? undefined} alt={thread.name} />
         <AvatarFallback>{fallback}</AvatarFallback>
         {thread.isOnline && (
           <AvatarBadge className="bg-green-600 dark:bg-green-500" />

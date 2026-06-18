@@ -25,6 +25,7 @@ public static class ServiceCollectionExtension
     {
         services.AddApplicationOptions(configuration);
         services.AddCorsServices();
+        services.AddSignalR();
         services.AddDatabaseServices(configuration);
         services.AddAuthServices(configuration);
         services.AddApplicationServices(configuration);

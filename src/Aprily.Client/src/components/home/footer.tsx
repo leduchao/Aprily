@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ApiError } from "@/lib/api-client"
+import { useOpenDirectConversationMutation } from "@/lib/chat-api"
 import {
   type FriendRequest,
   type FriendUser,
@@ -34,6 +35,7 @@ import {
   useSendFriendRequestMutation,
 } from "@/lib/friends-api"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@tanstack/react-router"
 
 type FooterMode = "menu" | "new-chat" | "new-contact" | "requests"
 
@@ -120,7 +122,10 @@ export const Footer = () => {
         <div className="overflow-hidden rounded-3xl bg-card shadow-2xl">
           {mode === "menu" && <ActionMenu onSelect={setMode} />}
           {mode === "new-chat" && (
-            <NewChatPanel onBack={() => setMode("menu")} />
+            <NewChatPanel
+              onBack={() => setMode("menu")}
+              onClose={() => handleOpenChange(false)}
+            />
           )}
           {mode === "new-contact" && (
             <NewContactPanel onBack={() => setMode("menu")} />
@@ -246,14 +251,46 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
   )
 }
 
-const NewChatPanel = ({ onBack }: { onBack: () => void }) => {
+const NewChatPanel = ({
+  onBack,
+  onClose,
+}: {
+  onBack: () => void
+  onClose: () => void
+}) => {
+  const navigate = useNavigate()
   const friendsQuery = useFriendsQuery()
+  const openConversationMutation = useOpenDirectConversationMutation()
+
+  const handleOpenChat = (recipientUserId: string) => {
+    openConversationMutation.mutate(recipientUserId, {
+      onSuccess: (response) => {
+        onClose()
+        void navigate({
+          to: "/threads/$threadId",
+          params: { threadId: response.conversationId },
+        })
+      },
+    })
+  }
+
+  const errorMessage =
+    openConversationMutation.error instanceof ApiError
+      ? openConversationMutation.error.message
+      : openConversationMutation.error
+        ? "Could not open chat"
+        : null
 
   return (
     <div className="p-5">
       <PanelHeader title="New Chat" onBack={onBack} />
 
       <div className="mt-4 max-h-80 overflow-y-auto">
+        {errorMessage && (
+          <p className="mb-3 rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {errorMessage}
+          </p>
+        )}
         {friendsQuery.isLoading && <LoadingRow label="Loading friends" />}
         {friendsQuery.isError && (
           <EmptyState label="Could not load your friends." />
@@ -266,8 +303,13 @@ const NewChatPanel = ({ onBack }: { onBack: () => void }) => {
             key={friend.id}
             user={friend.user}
             trailing={
-              <Button variant="secondary" size="sm" disabled>
-                Soon
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={openConversationMutation.isPending}
+                onClick={() => handleOpenChat(friend.user.id)}
+              >
+                Chat
               </Button>
             }
           />
