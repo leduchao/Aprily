@@ -30,7 +30,7 @@ public sealed class ListFriendsQuery(int take, DateTime? before)
             var rows = await conn.QueryAsync<FriendRow>(
                 new CommandDefinition(
                     """
-                    WITH current_user AS (
+                    WITH me AS (
                         SELECT id
                         FROM users
                         WHERE entity_id = @CurrentUserId
@@ -45,7 +45,7 @@ public sealed class ListFriendsQuery(int take, DateTime? before)
                         friend.email AS Email,
                         friend.avatar_url AS AvatarUrl,
                         f.created_at AS CreatedAt
-                    FROM current_user cu
+                    FROM me cu
                     INNER JOIN friendships f
                         ON (f.user_low_id = cu.id OR f.user_high_id = cu.id)
                         AND f.is_deleted = false
@@ -55,7 +55,7 @@ public sealed class ListFriendsQuery(int take, DateTime? before)
                             ELSE f.user_low_id
                         END
                         AND friend.is_deleted = false
-                    WHERE (@Before IS NULL OR f.created_at < @Before)
+                    WHERE (@Before::timestamptz IS NULL OR f.created_at < @Before::timestamptz)
                     ORDER BY f.created_at DESC, f.id DESC
                     LIMIT @Take;
                     """,

@@ -28,7 +28,7 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
             using var conn = await _dbConnectionFactory.CreateConnection();
 
             var sql = """
-                WITH current_user AS (
+                WITH me AS (
                     SELECT id
                     FROM users
                     WHERE entity_id = @CurrentUserId
@@ -48,7 +48,7 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                     lm.content AS LastMessageContent,
                     lm.sent_at AS LastMessageSentAt,
                     COALESCE(unread.unread_count, 0) AS UnreadCount
-                FROM current_user cu
+                FROM me cu
                 INNER JOIN conversation_members cm
                     ON cm.user_id = cu.id
                     AND cm.is_deleted = false
@@ -78,7 +78,7 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                         OR m.id > cm.last_read_message_id
                     )
                 ) unread ON true
-                WHERE (@Before IS NULL OR c.last_message_at < @Before)
+                WHERE (@Before::timestamptz IS NULL OR c.last_message_at < @Before::timestamptz)
                 ORDER BY c.last_message_at DESC NULLS LAST, c.id DESC
                 LIMIT @Take;
                 """;

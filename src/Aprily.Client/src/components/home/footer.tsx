@@ -1,11 +1,15 @@
-import { useState } from "react"
+import { useState, type FormEvent, type ReactNode } from "react"
 import {
+  ArrowLeft,
+  Check,
   ContactRound,
   Home,
+  LoaderCircle,
   MessageSquare,
   Plus,
   UserRound,
   Users,
+  X,
 } from "lucide-react"
 
 import {
@@ -16,32 +20,57 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ApiError } from "@/lib/api-client"
+import {
+  type FriendRequest,
+  type FriendUser,
+  useAcceptFriendRequestMutation,
+  useDeclineFriendRequestMutation,
+  useFriendsQuery,
+  useIncomingFriendRequestsQuery,
+  useSendFriendRequestMutation,
+} from "@/lib/friends-api"
 import { cn } from "@/lib/utils"
+
+type FooterMode = "menu" | "new-chat" | "new-contact" | "requests"
 
 const actions = [
   {
+    mode: "new-chat" as const,
     icon: MessageSquare,
     title: "New Chat",
-    description: "Send a message to your contact",
+    description: "Choose a friend to start messaging",
   },
   {
+    mode: "new-contact" as const,
     icon: ContactRound,
     title: "New Contact",
-    description: "Add a contact to be able to send messages",
+    description: "Add a contact by email or user id",
   },
   {
+    mode: "requests" as const,
     icon: Users,
-    title: "New Community",
-    description: "Join the community around you",
+    title: "Friend Requests",
+    description: "Review people who want to connect",
   },
 ]
 
 export const Footer = () => {
   const [isOpen, setIsOpen] = useState(false)
+  const [mode, setMode] = useState<FooterMode>("menu")
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) {
+      setMode("menu")
+    }
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <footer className="shrink-0 border-t border-border/60 bg-background py-4">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="flex justify-center">
@@ -84,34 +113,21 @@ export const Footer = () => {
       >
         <DialogTitle className="sr-only">Create a new chat</DialogTitle>
         <DialogDescription className="sr-only">
-          Choose whether to start a chat, add a contact, or create a community.
+          Choose whether to start a chat, add a contact, or review friend
+          requests.
         </DialogDescription>
 
         <div className="overflow-hidden rounded-3xl bg-card shadow-2xl">
-          {actions.map((action, index) => {
-            const Icon = action.icon
-
-            return (
-              <Button
-                variant="ghost"
-                key={action.title}
-                className={cn(
-                  "h-auto w-full justify-start gap-4 rounded-none px-6 py-4 text-left hover:bg-muted/50",
-                  index > 0 && "border-t border-border/60"
-                )}
-              >
-                <Icon className="size-6 shrink-0 text-foreground" />
-                <span className="min-w-0">
-                  <span className="block text-lg font-medium text-foreground">
-                    {action.title}
-                  </span>
-                  <span className="mt-1 block truncate text-sm text-muted-foreground">
-                    {action.description}
-                  </span>
-                </span>
-              </Button>
-            )
-          })}
+          {mode === "menu" && <ActionMenu onSelect={setMode} />}
+          {mode === "new-chat" && (
+            <NewChatPanel onBack={() => setMode("menu")} />
+          )}
+          {mode === "new-contact" && (
+            <NewContactPanel onBack={() => setMode("menu")} />
+          )}
+          {mode === "requests" && (
+            <FriendRequestsPanel onBack={() => setMode("menu")} />
+          )}
         </div>
 
         <DialogClose asChild>
@@ -122,4 +138,278 @@ export const Footer = () => {
       </DialogContent>
     </Dialog>
   )
+}
+
+const ActionMenu = ({ onSelect }: { onSelect: (mode: FooterMode) => void }) => {
+  return (
+    <>
+      {actions.map((action, index) => {
+        const Icon = action.icon
+
+        return (
+          <Button
+            variant="ghost"
+            key={action.title}
+            className={cn(
+              "h-auto w-full justify-start gap-4 rounded-none px-6 py-4 text-left hover:bg-muted/50",
+              index > 0 && "border-t border-border/60"
+            )}
+            onClick={() => onSelect(action.mode)}
+          >
+            <Icon className="size-6 shrink-0 text-foreground" />
+            <span className="min-w-0">
+              <span className="block text-lg font-medium text-foreground">
+                {action.title}
+              </span>
+              <span className="mt-1 block truncate text-sm text-muted-foreground">
+                {action.description}
+              </span>
+            </span>
+          </Button>
+        )
+      })}
+    </>
+  )
+}
+
+const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
+  const [identifier, setIdentifier] = useState("")
+  const sendFriendRequestMutation = useSendFriendRequestMutation()
+
+  const errorMessage =
+    sendFriendRequestMutation.error instanceof ApiError
+      ? sendFriendRequestMutation.error.message
+      : sendFriendRequestMutation.error
+        ? "Could not send friend request"
+        : null
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const value = identifier.trim()
+    if (!value) {
+      return
+    }
+
+    sendFriendRequestMutation.mutate(
+      value.includes("@") ? { email: value } : { recipientUserId: value },
+      {
+        onSuccess: () => setIdentifier(""),
+      }
+    )
+  }
+
+  return (
+    <div className="p-5">
+      <PanelHeader title="New Contact" onBack={onBack} />
+
+      <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium" htmlFor="friendIdentifier">
+            Email or user id
+          </label>
+          <Input
+            id="friendIdentifier"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            placeholder="friend@example.com"
+            autoComplete="off"
+          />
+        </div>
+
+        {sendFriendRequestMutation.isSuccess && (
+          <p className="rounded-2xl bg-primary/20 px-3 py-2 text-sm text-foreground">
+            Friend request sent.
+          </p>
+        )}
+
+        {errorMessage && (
+          <p className="rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {errorMessage}
+          </p>
+        )}
+
+        <Button
+          className="w-full"
+          size="lg"
+          disabled={sendFriendRequestMutation.isPending}
+        >
+          {sendFriendRequestMutation.isPending ? (
+            <LoaderCircle className="animate-spin" />
+          ) : (
+            <ContactRound />
+          )}
+          Send request
+        </Button>
+      </form>
+    </div>
+  )
+}
+
+const NewChatPanel = ({ onBack }: { onBack: () => void }) => {
+  const friendsQuery = useFriendsQuery()
+
+  return (
+    <div className="p-5">
+      <PanelHeader title="New Chat" onBack={onBack} />
+
+      <div className="mt-4 max-h-80 overflow-y-auto">
+        {friendsQuery.isLoading && <LoadingRow label="Loading friends" />}
+        {friendsQuery.isError && (
+          <EmptyState label="Could not load your friends." />
+        )}
+        {friendsQuery.data?.length === 0 && (
+          <EmptyState label="Add a contact before starting a chat." />
+        )}
+        {friendsQuery.data?.map((friend) => (
+          <FriendRow
+            key={friend.id}
+            user={friend.user}
+            trailing={
+              <Button variant="secondary" size="sm" disabled>
+                Soon
+              </Button>
+            }
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const FriendRequestsPanel = ({ onBack }: { onBack: () => void }) => {
+  const requestsQuery = useIncomingFriendRequestsQuery()
+  const acceptMutation = useAcceptFriendRequestMutation()
+  const declineMutation = useDeclineFriendRequestMutation()
+
+  return (
+    <div className="p-5">
+      <PanelHeader title="Requests" onBack={onBack} />
+
+      <div className="mt-4 max-h-80 overflow-y-auto">
+        {requestsQuery.isLoading && <LoadingRow label="Loading requests" />}
+        {requestsQuery.isError && (
+          <EmptyState label="Could not load friend requests." />
+        )}
+        {requestsQuery.data?.length === 0 && (
+          <EmptyState label="No pending friend requests." />
+        )}
+        {requestsQuery.data?.map((request) => (
+          <FriendRequestRow
+            key={request.id}
+            request={request}
+            isAccepting={acceptMutation.isPending}
+            isDeclining={declineMutation.isPending}
+            onAccept={() => acceptMutation.mutate(request.id)}
+            onDecline={() => declineMutation.mutate(request.id)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const PanelHeader = ({
+  title,
+  onBack,
+}: {
+  title: string
+  onBack: () => void
+}) => {
+  return (
+    <div className="flex items-center gap-3">
+      <Button variant="ghost" size="icon" onClick={onBack}>
+        <ArrowLeft />
+      </Button>
+      <h2 className="text-xl font-semibold">{title}</h2>
+    </div>
+  )
+}
+
+const FriendRequestRow = ({
+  request,
+  isAccepting,
+  isDeclining,
+  onAccept,
+  onDecline,
+}: {
+  request: FriendRequest
+  isAccepting: boolean
+  isDeclining: boolean
+  onAccept: () => void
+  onDecline: () => void
+}) => {
+  return (
+    <FriendRow
+      user={request.requester}
+      trailing={
+        <div className="flex gap-1">
+          <Button
+            variant="secondary"
+            size="icon-sm"
+            disabled={isAccepting || isDeclining}
+            onClick={onAccept}
+          >
+            <Check />
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon-sm"
+            disabled={isAccepting || isDeclining}
+            onClick={onDecline}
+          >
+            <X />
+          </Button>
+        </div>
+      }
+    />
+  )
+}
+
+const FriendRow = ({
+  user,
+  trailing,
+}: {
+  user: FriendUser
+  trailing?: ReactNode
+}) => {
+  const name = user.fullName || user.username
+
+  return (
+    <div className="flex min-w-0 items-center gap-3 border-t border-border/60 py-3 first:border-t-0">
+      <Avatar className="size-11">
+        <AvatarImage src={user.avatarUrl ?? undefined} alt={name} />
+        <AvatarFallback>{getFallback(name)}</AvatarFallback>
+      </Avatar>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{name}</p>
+        <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+      </div>
+
+      {trailing}
+    </div>
+  )
+}
+
+const LoadingRow = ({ label }: { label: string }) => {
+  return (
+    <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+      <LoaderCircle className="animate-spin" />
+      {label}
+    </div>
+  )
+}
+
+const EmptyState = ({ label }: { label: string }) => {
+  return <p className="py-6 text-sm text-muted-foreground">{label}</p>
+}
+
+const getFallback = (name: string) => {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
 }

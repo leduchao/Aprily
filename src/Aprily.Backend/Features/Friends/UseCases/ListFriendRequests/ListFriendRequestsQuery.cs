@@ -31,7 +31,7 @@ public sealed class ListFriendRequestsQuery(string direction, string status, int
             var rows = await conn.QueryAsync<FriendRequestRow>(
                 new CommandDefinition(
                     """
-                    WITH current_user AS (
+                    WITH me AS (
                         SELECT id
                         FROM users
                         WHERE entity_id = @CurrentUserId
@@ -53,7 +53,7 @@ public sealed class ListFriendRequestsQuery(string direction, string status, int
                         fr.status,
                         fr.created_at AS CreatedAt,
                         fr.responded_at AS RespondedAt
-                    FROM current_user cu
+                    FROM me cu
                     INNER JOIN friend_requests fr
                         ON (
                             (@Direction = 'incoming' AND fr.addressee_user_id = cu.id)

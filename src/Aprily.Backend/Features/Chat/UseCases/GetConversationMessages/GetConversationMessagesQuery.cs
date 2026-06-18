@@ -78,7 +78,7 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
                     AND sender.is_deleted = false
                 WHERE m.conversation_id = @ConversationInternalId
                 AND m.is_deleted = false
-                AND (@Before IS NULL OR m.sent_at < @Before)
+                AND (@Before::timestamptz IS NULL OR m.sent_at < @Before::timestamptz)
                 ORDER BY m.sent_at DESC, m.id DESC
                 LIMIT @Take;
                 """;
