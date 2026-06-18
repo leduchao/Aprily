@@ -9,12 +9,18 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-const signUpSchema = z.object({
-  fullName: z.string().max(100).optional(),
-  username: z.string().min(3).max(20),
-  email: z.email(),
-  password: z.string().min(6).max(16),
-})
+const signUpSchema = z
+  .object({
+    fullName: z.string().max(100).optional(),
+    username: z.string().min(3).max(20),
+    email: z.email(),
+    password: z.string().min(6).max(16),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
 
 type SignUpForm = z.infer<typeof signUpSchema>
 
@@ -23,6 +29,7 @@ export const SignUpPage = () => {
   const setSession = useAuthStore((state) => state.setSession)
   const signUpMutation = useSignUpMutation()
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const {
     register,
@@ -35,6 +42,7 @@ export const SignUpPage = () => {
       username: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   })
 
@@ -64,9 +72,9 @@ export const SignUpPage = () => {
 
   return (
     <main className="flex h-dvh w-dvw max-w-full flex-col overflow-hidden bg-background">
-      <section className="flex min-h-0 flex-1 flex-col justify-center px-5 py-6">
+      <section className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
         <div className="mb-8">
-          <p className="text-sm font-medium text-muted-foreground">Aprily</p>
+          <p className="font-medium text-muted-foreground">Aprily</p>
           <h1 className="mt-2 text-4xl font-bold tracking-normal">
             Create account
           </h1>
@@ -83,6 +91,7 @@ export const SignUpPage = () => {
             <Input
               id="fullName"
               autoComplete="name"
+              className="h-12 rounded-full px-4"
               aria-invalid={Boolean(errors.fullName)}
               {...register("fullName")}
             />
@@ -100,6 +109,7 @@ export const SignUpPage = () => {
             <Input
               id="username"
               autoComplete="username"
+              className="h-12 rounded-full px-4"
               aria-invalid={Boolean(errors.username)}
               {...register("username")}
             />
@@ -118,6 +128,7 @@ export const SignUpPage = () => {
               id="email"
               type="email"
               autoComplete="email"
+              className="h-12 rounded-full px-4"
               aria-invalid={Boolean(errors.email)}
               {...register("email")}
             />
@@ -135,7 +146,7 @@ export const SignUpPage = () => {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                className="pr-10"
+                className="h-12 rounded-full px-4 pr-12"
                 aria-invalid={Boolean(errors.password)}
                 {...register("password")}
               />
@@ -143,7 +154,7 @@ export const SignUpPage = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute top-0 right-0"
+                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full"
                 onClick={() => setShowPassword((value) => !value)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -157,6 +168,41 @@ export const SignUpPage = () => {
             )}
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="confirmPassword">
+              Confirm password
+            </label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                autoComplete="new-password"
+                className="h-12 rounded-full px-4 pr-12"
+                aria-invalid={Boolean(errors.confirmPassword)}
+                {...register("confirmPassword")}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full"
+                onClick={() => setShowConfirmPassword((value) => !value)}
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirm password"
+                    : "Show confirm password"
+                }
+              >
+                {showConfirmPassword ? <EyeOff /> : <Eye />}
+              </Button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="text-xs text-destructive">
+                {errors.confirmPassword.message}
+              </p>
+            )}
+          </div>
+
           {serverError && (
             <p className="rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {serverError}
@@ -164,7 +210,7 @@ export const SignUpPage = () => {
           )}
 
           <Button
-            className="mt-2 w-full"
+            className="mt-2 h-12 w-full rounded-full text-base"
             size="lg"
             disabled={signUpMutation.isPending}
           >

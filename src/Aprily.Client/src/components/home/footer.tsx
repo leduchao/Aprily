@@ -63,6 +63,7 @@ const actions = [
 export const Footer = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [mode, setMode] = useState<FooterMode>("menu")
+  const navigate = useNavigate()
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
@@ -79,7 +80,8 @@ export const Footer = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="size-12 rounded-full text-foreground"
+              className="size-12 rounded-full"
+              onClick={() => void navigate({ to: "/" })}
             >
               <Home className="size-7" />
             </Button>
@@ -101,7 +103,9 @@ export const Footer = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="size-12 rounded-full text-muted-foreground"
+              className="size-12 rounded-full"
+              title="Profile"
+              onClick={() => void navigate({ to: "/profile" })}
             >
               <UserRound className="size-7" />
             </Button>

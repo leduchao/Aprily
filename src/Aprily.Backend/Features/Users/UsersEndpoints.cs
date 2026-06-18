@@ -1,4 +1,5 @@
 using Aprily.Backend.Common.Constants;
+using Aprily.Backend.Features.Users.UseCases.Auth.RefreshToken;
 using Aprily.Backend.Features.Users.UseCases.Auth.SignIn;
 using Aprily.Backend.Features.Users.UseCases.Auth.SignOut;
 using Aprily.Backend.Features.Users.UseCases.Auth.SignUp;
@@ -21,6 +22,7 @@ public static class UsersEndpoints
 
         auth.MapSignUpEndpoint();
         auth.MapSignInEndpoint();
+        auth.MapRefreshTokenEndpoint();
         auth.MapSignOutEndpoint();
 
         users.MapGetUserProfileEndpoint();

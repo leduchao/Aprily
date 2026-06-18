@@ -1,3 +1,5 @@
+import { useAuthStore } from "@/lib/auth-store"
+
 type ApiErrorBody = {
   code: string
   message: string
@@ -22,6 +24,7 @@ type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 
 const API_VERSION = "v1"
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api"
+let refreshSessionPromise: Promise<string | null> | null = null
 
 export class ApiError extends Error {
   code?: string
@@ -66,18 +69,43 @@ const request = async <TResponse, TBody>(
   path: string,
   options?: ApiRequestOptions<TBody>
 ) => {
+  const response = await sendRequest(method, path, options)
+
+  if (
+    response.status === 401 &&
+    options?.auth !== false &&
+    !isRefreshRequest(path)
+  ) {
+    const accessToken = await refreshSession()
+
+    if (accessToken) {
+      return parseRequestResponse<TResponse>(
+        await sendRequest(method, path, options, accessToken)
+      )
+    }
+  }
+
+  return parseRequestResponse<TResponse>(response)
+}
+
+const sendRequest = async <TBody>(
+  method: HttpMethod,
+  path: string,
+  options?: ApiRequestOptions<TBody>,
+  accessTokenOverride?: string
+) => {
   const headers = new Headers(options?.headers)
 
   if (options?.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json")
   }
 
-  const accessToken = getStoredAccessToken()
+  const accessToken = accessTokenOverride ?? useAuthStore.getState().accessToken
   if (options?.auth !== false && accessToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${accessToken}`)
   }
 
-  const response = await fetch(resolveUrl(path), {
+  return fetch(resolveUrl(path), {
     method,
     headers,
     credentials: options?.credentials ?? "include",
@@ -85,7 +113,9 @@ const request = async <TResponse, TBody>(
     body:
       options?.body === undefined ? undefined : JSON.stringify(options.body),
   })
+}
 
+const parseRequestResponse = async <TResponse>(response: Response) => {
   const payload = await parseResponse(response)
 
   if (isApiResult<TResponse>(payload)) {
@@ -105,6 +135,36 @@ const request = async <TResponse, TBody>(
   }
 
   return payload as TResponse
+}
+
+const refreshSession = async () => {
+  refreshSessionPromise ??= refreshSessionInternal().finally(() => {
+    refreshSessionPromise = null
+  })
+
+  return refreshSessionPromise
+}
+
+const refreshSessionInternal = async () => {
+  try {
+    const response = await fetch(resolveUrl("/users/auth/refresh-token"), {
+      method: "POST",
+      credentials: "include",
+    })
+
+    const payload = await parseResponse(response)
+
+    if (!response.ok || !isApiResult<AuthPayload>(payload) || payload.isFailure || !payload.data) {
+      useAuthStore.getState().clearSession()
+      return null
+    }
+
+    useAuthStore.getState().setSession(payload.data.accessToken, payload.data.user)
+    return payload.data.accessToken
+  } catch {
+    useAuthStore.getState().clearSession()
+    return null
+  }
 }
 
 const parseResponse = async (response: Response) => {
@@ -150,19 +210,19 @@ const normalizeBaseUrl = (baseUrl: string) => {
     : `${trimmedBaseUrl}/${API_VERSION}`
 }
 
-const getStoredAccessToken = () => {
-  const rawAuth = localStorage.getItem("aprily-auth")
-  if (!rawAuth) {
-    return null
-  }
+const isRefreshRequest = (path: string) => {
+  return path.includes("/users/auth/refresh-token")
+}
 
-  try {
-    const parsed = JSON.parse(rawAuth) as {
-      state?: { accessToken?: string | null }
-    }
-
-    return parsed.state?.accessToken ?? null
-  } catch {
-    return null
+type AuthPayload = {
+  accessToken: string
+  user: {
+    id: string
+    username: string
+    fullName: string | null
+    email: string
+    avatarUrl: string | null
+    lastSignInAt: string
+    isEmailVerified: boolean
   }
 }

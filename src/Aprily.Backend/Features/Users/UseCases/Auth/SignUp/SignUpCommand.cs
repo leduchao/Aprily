@@ -8,6 +8,8 @@ using MediatR;
 
 using Microsoft.EntityFrameworkCore;
 
+using RefreshTokenEntity = Aprily.Backend.Entities.RefreshToken;
+
 namespace Aprily.Backend.Features.Users.UseCases.Auth.SignUp;
 
 public record SignUpResponse(string AccessToken, string RefreshToken, UserBasicInfo User);
@@ -61,7 +63,7 @@ public sealed class SignUpCommand(string? fullName, string username, string emai
 
             var refreshToken = _tokenProvider.GenerateRefreshToken();
 
-            var newRefreshToken = new RefreshToken
+            var newRefreshToken = new RefreshTokenEntity
             {
                 EntityId = Guid.NewGuid(),
                 User = user,

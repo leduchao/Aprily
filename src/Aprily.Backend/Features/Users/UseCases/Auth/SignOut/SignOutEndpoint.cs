@@ -10,11 +10,21 @@ public static class SingOutEnpoint
     {
         groupBuilder.MapPost("/sign-out", async (HttpContext httpContext, ISender sender, CancellationToken cancellationToken) =>
         {
-            var result = await sender.Send(new SignOutCommand(), cancellationToken);
+            var refreshToken = httpContext.Request.Cookies[AuthCookieOptions.RefreshTokenCookieName];
+            Guid? currentUserId = null;
 
-            httpContext.Response.Cookies.Delete("refreshToken");
+            if (httpContext.User.Identity?.IsAuthenticated == true)
+            {
+                currentUserId = httpContext.User.GetUserEntityId();
+            }
+
+            var result = await sender.Send(new SignOutCommand(refreshToken, currentUserId), cancellationToken);
+
+            httpContext.Response.Cookies.Delete(
+                AuthCookieOptions.RefreshTokenCookieName,
+                AuthCookieOptions.CreateDeleteRefreshTokenCookieOptions(httpContext.Request));
 
             return result.ToHttpResult();
-        });
+        }).AllowAnonymous();
     }
 }

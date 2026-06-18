@@ -20,15 +20,11 @@ public static class SignUpEndpoint
             }
 
             httpContext.Response.Cookies.Append(
-                "refreshToken",
+                AuthCookieOptions.RefreshTokenCookieName,
                 result.Data.RefreshToken,
-                new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.None,
-                    Expires = DateTimeOffset.UtcNow.AddDays(7)
-                });
+                AuthCookieOptions.CreateRefreshTokenCookieOptions(
+                    httpContext.Request,
+                    DateTimeOffset.UtcNow.AddDays(7)));
 
             return Results.Ok(Result<object>.Success(new
             {

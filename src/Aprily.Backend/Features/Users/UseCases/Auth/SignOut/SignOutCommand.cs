@@ -1,6 +1,5 @@
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
-using Aprily.Backend.Features.Users.Services;
 
 using MediatR;
 
@@ -8,27 +7,57 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Aprily.Backend.Features.Users.UseCases.Auth.SignOut;
 
-public sealed class SignOutCommand : IRequest<Result>
+public sealed class SignOutCommand(string? refreshToken, Guid? userEntityId) : IRequest<Result>
 {
-    public class SignOutCommandHandler(AppDbContext dbContext, ICurrentUser currentUser, ILogger<SignOutCommandHandler> logger)
+    public string? RefreshToken { get; init; } = refreshToken;
+    public Guid? UserEntityId { get; init; } = userEntityId;
+
+    public class SignOutCommandHandler(AppDbContext dbContext, ILogger<SignOutCommandHandler> logger)
         : IRequestHandler<SignOutCommand, Result>
     {
         private readonly AppDbContext _dbContext = dbContext;
-        private readonly ICurrentUser _currentUser = currentUser;
         private readonly ILogger<SignOutCommandHandler> _logger = logger;
 
         public async Task<Result> Handle(SignOutCommand request, CancellationToken cancellationToken)
         {
-            var currentUser = await _dbContext.Users.FirstOrDefaultAsync(p => p.EntityId == _currentUser.UserEntityId, cancellationToken);
-            if (currentUser is null)
+            var userId = await GetUserId(request, cancellationToken);
+            if (userId is null)
             {
-                return Result.Failure(new Error("users.user_notFound", "User is invalid"));
+                return Result.Success();
             }
 
-            var revokedTokens = await RevokeAllUserRefreshTokensAsync(currentUser.Id, cancellationToken);
+            var revokedTokens = await RevokeAllUserRefreshTokensAsync(userId.Value, cancellationToken);
             _logger.LogInformation("Revoked {RevokedTokens} tokens", revokedTokens);
 
             return Result.Success();
+        }
+
+        private async Task<int?> GetUserId(SignOutCommand request, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                var refreshToken = await _dbContext.RefreshTokens
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        token => token.Token == request.RefreshToken &&
+                            !token.IsDeleted,
+                        cancellationToken);
+
+                if (refreshToken is not null)
+                {
+                    return refreshToken.UserId;
+                }
+            }
+
+            if (request.UserEntityId is null)
+            {
+                return null;
+            }
+
+            return await _dbContext.Users
+                .Where(user => user.EntityId == request.UserEntityId && !user.IsDeleted)
+                .Select(user => (int?)user.Id)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         private async Task<int> RevokeAllUserRefreshTokensAsync(int userId, CancellationToken cancellationToken)

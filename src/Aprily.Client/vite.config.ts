@@ -12,6 +12,11 @@ export default defineConfig({
         target: "http://localhost:5113",
         changeOrigin: true,
       },
+      "/hubs": {
+        target: "http://localhost:5113",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
   plugins: [
