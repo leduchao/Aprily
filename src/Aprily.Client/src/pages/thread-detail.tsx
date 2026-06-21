@@ -45,14 +45,15 @@ export const ThreadDetailPage = () => {
     })
   }, [latestMessage, markAsReadMutation, threadId])
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string, images: File[]) => {
     if (!conversation) {
       return
     }
 
-    sendMessageMutation.mutate({
+    await sendMessageMutation.mutateAsync({
       recipientUserId: conversation.otherUser.id,
       content,
+      images,
     })
   }
 

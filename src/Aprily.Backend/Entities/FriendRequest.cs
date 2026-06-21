@@ -11,6 +11,10 @@ public partial class FriendRequest
 
     public int AddresseeUserId { get; set; }
 
+    public int? UserLowId { get; set; }
+
+    public int? UserHighId { get; set; }
+
     public string Status { get; set; } = null!;
 
     public DateTime? RespondedAt { get; set; }
@@ -22,10 +26,6 @@ public partial class FriendRequest
     public DateTime UpdatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
-
-    public int? UserLowId { get; set; }
-
-    public int? UserHighId { get; set; }
 
     public virtual User AddresseeUser { get; set; } = null!;
 

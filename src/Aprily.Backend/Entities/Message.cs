@@ -11,7 +11,7 @@ public partial class Message
 
     public int SenderUserId { get; set; }
 
-    public string Content { get; set; } = null!;
+    public string? Content { get; set; }
 
     public DateTime SentAt { get; set; }
 
@@ -28,6 +28,8 @@ public partial class Message
     public virtual ICollection<ConversationMember> ConversationMembers { get; set; } = new List<ConversationMember>();
 
     public virtual ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
+
+    public virtual ICollection<MessageAttachment> MessageAttachments { get; set; } = new List<MessageAttachment>();
 
     public virtual User SenderUser { get; set; } = null!;
 }

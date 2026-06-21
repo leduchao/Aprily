@@ -48,7 +48,12 @@ export const ThreadList = () => {
                 conversation.otherUser.fullName ||
                 conversation.otherUser.username
               }
-              message={conversation.lastMessage?.content ?? "Say hello"}
+              message={
+                conversation.lastMessage?.content ||
+                (conversation.lastMessage?.hasAttachments
+                  ? "📷 Photo"
+                  : "Say hello")
+              }
               time={formatConversationTime(conversation.lastMessageAt)}
               unreadCount={conversation.unreadCount}
             />

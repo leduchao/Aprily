@@ -24,6 +24,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Message> Messages { get; set; }
 
+    public virtual DbSet<MessageAttachment> MessageAttachments { get; set; }
+
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -282,6 +284,54 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.SenderUser).WithMany(p => p.Messages)
                 .HasForeignKey(d => d.SenderUserId)
                 .HasConstraintName("fk_messages_users_sender_user_id");
+        });
+
+        modelBuilder.Entity<MessageAttachment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("message_attachments_pkey");
+
+            entity.ToTable("message_attachments");
+
+            entity.HasIndex(e => e.MessageId, "ix_message_attachments_message_id");
+
+            entity.HasIndex(e => e.EntityId, "ux_message_attachments_entity_id").IsUnique();
+
+            entity.HasIndex(e => new { e.MessageId, e.SortOrder }, "ux_message_attachments_message_id_sort_order")
+                .IsUnique()
+                .HasFilter("(is_deleted = false)");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ContentType)
+                .HasMaxLength(100)
+                .HasColumnName("content_type");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EntityId)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("entity_id");
+            entity.Property(e => e.Height).HasColumnName("height");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.MessageId).HasColumnName("message_id");
+            entity.Property(e => e.OriginalFileName)
+                .HasMaxLength(255)
+                .HasColumnName("original_file_name");
+            entity.Property(e => e.SizeBytes).HasColumnName("size_bytes");
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.Type)
+                .HasMaxLength(20)
+                .HasColumnName("type");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.Url)
+                .HasMaxLength(2048)
+                .HasColumnName("url");
+            entity.Property(e => e.Width).HasColumnName("width");
+
+            entity.HasOne(d => d.Message).WithMany(p => p.MessageAttachments)
+                .HasForeignKey(d => d.MessageId)
+                .HasConstraintName("fk_message_attachments_messages_message_id");
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>

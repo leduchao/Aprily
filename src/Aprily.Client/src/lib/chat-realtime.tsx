@@ -63,6 +63,7 @@ export const ChatRealtimeProvider = ({ children }: PropsWithChildren) => {
                 id: message.id,
                 senderUserId: message.senderUserId,
                 content: message.content,
+                hasAttachments: message.attachments.length > 0,
                 sentAt: message.sentAt,
               },
               lastMessageAt: message.sentAt,

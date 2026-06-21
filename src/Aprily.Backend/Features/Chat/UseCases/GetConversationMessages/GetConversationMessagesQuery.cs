@@ -61,6 +61,7 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
 
             var sql = """
                 SELECT
+                    m.id AS InternalId,
                     m.entity_id AS Id,
                     c.entity_id AS ConversationId,
                     sender.entity_id AS SenderUserId,
@@ -83,7 +84,7 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
                 LIMIT @Take;
                 """;
 
-            var messages = await conn.QueryAsync<ChatMessageResponse>(
+            var messageRows = (await conn.QueryAsync<MessageRow>(
                 new CommandDefinition(
                     sql,
                     new
@@ -93,9 +94,91 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
                         request.Before,
                         request.Take
                     },
-                    cancellationToken: cancellationToken));
+                    cancellationToken: cancellationToken))).ToList();
 
-            return Result<IReadOnlyList<ChatMessageResponse>>.Success(messages.ToList());
+            var messageIds = messageRows.Select(message => message.InternalId).ToArray();
+            var attachmentRows = messageIds.Length == 0
+                ? []
+                : (await conn.QueryAsync<AttachmentRow>(
+                    new CommandDefinition(
+                        """
+                        SELECT
+                            ma.message_id AS MessageId,
+                            ma.entity_id AS Id,
+                            ma.type AS Type,
+                            ma.url AS Url,
+                            ma.original_file_name AS OriginalFileName,
+                            ma.content_type AS ContentType,
+                            ma.size_bytes AS SizeBytes,
+                            ma.width AS Width,
+                            ma.height AS Height,
+                            ma.sort_order AS SortOrder
+                        FROM message_attachments ma
+                        WHERE ma.message_id = ANY(@MessageIds)
+                        AND ma.is_deleted = false
+                        ORDER BY ma.message_id, ma.sort_order;
+                        """,
+                        new { MessageIds = messageIds },
+                        cancellationToken: cancellationToken))).ToList();
+
+            var attachmentsByMessageId = attachmentRows
+                .GroupBy(attachment => attachment.MessageId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (IReadOnlyList<ChatMessageAttachmentResponse>)group
+                        .Select(attachment => new ChatMessageAttachmentResponse(
+                            attachment.Id,
+                            attachment.Type,
+                            attachment.Url,
+                            attachment.OriginalFileName,
+                            attachment.ContentType,
+                            attachment.SizeBytes,
+                            attachment.Width,
+                            attachment.Height,
+                            attachment.SortOrder))
+                        .ToList());
+
+            var messages = messageRows
+                .Select(message => new ChatMessageResponse(
+                    message.Id,
+                    message.ConversationId,
+                    message.SenderUserId,
+                    message.SenderUsername,
+                    message.SenderAvatarUrl,
+                    message.Content,
+                    attachmentsByMessageId.GetValueOrDefault(message.InternalId, []),
+                    message.SentAt,
+                    message.IsMine))
+                .ToList();
+
+            return Result<IReadOnlyList<ChatMessageResponse>>.Success(messages);
+        }
+
+        private sealed class MessageRow
+        {
+            public int InternalId { get; init; }
+            public Guid Id { get; init; }
+            public Guid ConversationId { get; init; }
+            public Guid SenderUserId { get; init; }
+            public string SenderUsername { get; init; } = null!;
+            public string? SenderAvatarUrl { get; init; }
+            public string? Content { get; init; }
+            public DateTime SentAt { get; init; }
+            public bool IsMine { get; init; }
+        }
+
+        private sealed class AttachmentRow
+        {
+            public int MessageId { get; init; }
+            public Guid Id { get; init; }
+            public string Type { get; init; } = null!;
+            public string Url { get; init; } = null!;
+            public string? OriginalFileName { get; init; }
+            public string ContentType { get; init; } = null!;
+            public long SizeBytes { get; init; }
+            public int? Width { get; init; }
+            public int? Height { get; init; }
+            public short SortOrder { get; init; }
         }
     }
 }

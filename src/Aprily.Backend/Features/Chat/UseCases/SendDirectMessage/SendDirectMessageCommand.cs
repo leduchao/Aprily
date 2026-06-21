@@ -1,3 +1,4 @@
+using Aprily.Backend.Common.Constants;
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
 using Aprily.Backend.Database.Connection;
@@ -19,17 +20,22 @@ namespace Aprily.Backend.Features.Chat.UseCases.SendDirectMessage;
 
 public record SendDirectMessageResponse(Guid ConversationId, ChatMessageResponse Message);
 
-public sealed class SendDirectMessageCommand(Guid recipientUserId, string content)
+public sealed class SendDirectMessageCommand(
+    Guid recipientUserId,
+    string? content,
+    IReadOnlyList<IFormFile>? images = null)
     : IRequest<Result<SendDirectMessageResponse>>
 {
     public Guid RecipientUserId { get; init; } = recipientUserId;
-    public string Content { get; init; } = content;
+    public string? Content { get; init; } = content;
+    public IReadOnlyList<IFormFile> Images { get; init; } = images ?? [];
 
     public sealed class Handler(
         AppDbContext dbContext,
         ICurrentUser currentUser,
         IDbConnectionFactory dbConnectionFactory,
-        IHubContext<ChatHub> chatHub)
+        IHubContext<ChatHub> chatHub,
+        IWebHostEnvironment environment)
         : IRequestHandler<SendDirectMessageCommand, Result<SendDirectMessageResponse>>
     {
         private const string DirectConversationType = "direct";
@@ -39,12 +45,15 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
         private readonly ICurrentUser _currentUser = currentUser;
         private readonly IDbConnectionFactory _dbConnectionFactory = dbConnectionFactory;
         private readonly IHubContext<ChatHub> _chatHub = chatHub;
+        private readonly IWebHostEnvironment _environment = environment;
 
         public async Task<Result<SendDirectMessageResponse>> Handle(
             SendDirectMessageCommand request,
             CancellationToken cancellationToken)
         {
-            var content = request.Content.Trim();
+            var content = string.IsNullOrWhiteSpace(request.Content)
+                ? null
+                : request.Content.Trim();
 
             var sender = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.EntityId == _currentUser.UserEntityId && !u.IsDeleted, cancellationToken);
@@ -106,13 +115,33 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
                 IsDeleted = false
             };
 
-            await _dbContext.Messages.AddAsync(message, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            var storedFilePaths = new List<string>();
 
-            conversation.LastMessageId = message.Id;
-            conversation.LastMessageAt = message.SentAt;
+            try
+            {
+                await AddImageAttachments(message, request.Images, storedFilePaths, now, cancellationToken);
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+                await _dbContext.Messages.AddAsync(message, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                conversation.LastMessageId = message.Id;
+                conversation.LastMessageAt = message.SentAt;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                DeleteStoredFiles(storedFilePaths);
+                throw;
+            }
+
+            var attachments = message.MessageAttachments
+                .OrderBy(attachment => attachment.SortOrder)
+                .Select(ToResponse)
+                .ToList();
 
             var responseMessage = new ChatMessageResponse(
                 message.EntityId,
@@ -121,6 +150,7 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
                 sender.Username,
                 sender.AvatarUrl,
                 message.Content,
+                attachments,
                 message.SentAt,
                 true);
 
@@ -140,6 +170,93 @@ public sealed class SendDirectMessageCommand(Guid recipientUserId, string conten
 
             return Result<SendDirectMessageResponse>.Success(
                 new SendDirectMessageResponse(conversation.EntityId, responseMessage));
+        }
+
+        private async Task AddImageAttachments(
+            Message message,
+            IReadOnlyList<IFormFile> images,
+            ICollection<string> storedFilePaths,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            if (images.Count == 0)
+            {
+                return;
+            }
+
+            var imagesDirectory = Path.Combine(
+                _environment.ContentRootPath,
+                UploadPaths.RootDirectoryName,
+                UploadPaths.ChatImagesDirectoryName);
+            Directory.CreateDirectory(imagesDirectory);
+
+            for (var index = 0; index < images.Count; index++)
+            {
+                var image = images[index];
+                var extension = ChatImageUploadRules.GetExtension(image.ContentType);
+                var fileName = $"{message.EntityId:N}-{index}-{Guid.NewGuid():N}{extension}";
+                var destinationPath = Path.Combine(imagesDirectory, fileName);
+
+                await using (var stream = new FileStream(
+                    destinationPath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    81920,
+                    FileOptions.Asynchronous))
+                {
+                    await image.CopyToAsync(stream, cancellationToken);
+                }
+
+                storedFilePaths.Add(destinationPath);
+
+                message.MessageAttachments.Add(new MessageAttachment
+                {
+                    EntityId = Guid.NewGuid(),
+                    Type = "image",
+                    Url = UploadPaths.GetChatImageUrl(fileName),
+                    OriginalFileName = TruncateFileName(Path.GetFileName(image.FileName)),
+                    ContentType = image.ContentType,
+                    SizeBytes = image.Length,
+                    SortOrder = (short)index,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    IsDeleted = false
+                });
+            }
+        }
+
+        private static ChatMessageAttachmentResponse ToResponse(MessageAttachment attachment) =>
+            new(
+                attachment.EntityId,
+                attachment.Type,
+                attachment.Url,
+                attachment.OriginalFileName,
+                attachment.ContentType,
+                attachment.SizeBytes,
+                attachment.Width,
+                attachment.Height,
+                attachment.SortOrder);
+
+        private static string? TruncateFileName(string? fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return null;
+            }
+
+            return fileName.Length <= 255 ? fileName : fileName[..255];
+        }
+
+        private static void DeleteStoredFiles(IEnumerable<string> filePaths)
+        {
+            foreach (var filePath in filePaths)
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            }
         }
 
         private async Task<Conversation?> GetOrCreateDirectConversation(

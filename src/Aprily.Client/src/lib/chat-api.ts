@@ -11,7 +11,8 @@ export type ChatUser = {
 export type LastMessage = {
   id: string
   senderUserId: string
-  content: string
+  content: string | null
+  hasAttachments: boolean
   sentAt: string
 }
 
@@ -30,14 +31,28 @@ export type ChatMessage = {
   senderUserId: string
   senderUsername: string
   senderAvatarUrl: string | null
-  content: string
+  content: string | null
+  attachments: ChatMessageAttachment[]
   sentAt: string
   isMine: boolean
+}
+
+export type ChatMessageAttachment = {
+  id: string
+  type: "image"
+  url: string
+  originalFileName: string | null
+  contentType: string
+  sizeBytes: number
+  width: number | null
+  height: number | null
+  sortOrder: number
 }
 
 export type SendDirectMessageInput = {
   recipientUserId: string
   content: string
+  images?: File[]
 }
 
 export type SendDirectMessageResponse = {
@@ -85,21 +100,33 @@ export const openDirectConversation = async (recipientUserId: string) => {
 }
 
 export const sendDirectMessage = async (input: SendDirectMessageInput) => {
+  if (input.images?.length) {
+    const formData = new FormData()
+    formData.append("recipientUserId", input.recipientUserId)
+    formData.append("content", input.content)
+    input.images.forEach((image) => formData.append("images", image))
+
+    return apiClient.post<SendDirectMessageResponse, FormData>(
+      "/chat/direct-image-messages",
+      formData
+    )
+  }
+
   return apiClient.post<SendDirectMessageResponse, SendDirectMessageInput>(
     "/chat/direct-messages",
-    input
+    { recipientUserId: input.recipientUserId, content: input.content }
   )
 }
 
 export const markConversationAsRead = async (
   input: MarkConversationAsReadInput
 ) => {
-  return apiClient.post<
-    MarkConversationAsReadResponse,
-    { messageId: string }
-  >(`/chat/conversations/${input.conversationId}/read`, {
-    messageId: input.messageId,
-  })
+  return apiClient.post<MarkConversationAsReadResponse, { messageId: string }>(
+    `/chat/conversations/${input.conversationId}/read`,
+    {
+      messageId: input.messageId,
+    }
+  )
 }
 
 export const useConversationsQuery = () => {

@@ -6,6 +6,7 @@ public record ChatMessageResponse(
     Guid SenderUserId,
     string SenderUsername,
     string? SenderAvatarUrl,
-    string Content,
+    string? Content,
+    IReadOnlyList<ChatMessageAttachmentResponse> Attachments,
     DateTime SentAt,
     bool IsMine);
