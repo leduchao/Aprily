@@ -28,6 +28,10 @@ export type SignUpRequest = {
   password: string
 }
 
+export type UpdateProfileRequest = {
+  fullName: string | null
+}
+
 export const signIn = async (request: SignInRequest) => {
   return apiClient.post<AuthPayload, SignInRequest>(
     "/users/auth/sign-in",
@@ -56,6 +60,17 @@ export const signOut = async () => {
   })
 }
 
+export const updateProfile = async (request: UpdateProfileRequest) => {
+  return apiClient.patch<AuthUser, UpdateProfileRequest>("/users/me", request)
+}
+
+export const uploadAvatar = async (avatar: File) => {
+  const formData = new FormData()
+  formData.append("avatar", avatar)
+
+  return apiClient.post<AuthUser, FormData>("/users/me/avatar", formData)
+}
+
 export const useSignInMutation = () => {
   return useMutation({
     mutationFn: signIn,
@@ -72,6 +87,14 @@ export const useSignOutMutation = () => {
   return useMutation({
     mutationFn: signOut,
   })
+}
+
+export const useUpdateProfileMutation = () => {
+  return useMutation({ mutationFn: updateProfile })
+}
+
+export const useUploadAvatarMutation = () => {
+  return useMutation({ mutationFn: uploadAvatar })
 }
 
 export { ApiError }

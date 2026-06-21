@@ -26,6 +26,14 @@ app.UseHttpsRedirection();
 
 app.UseCors(ServiceCollectionExtension.CorsPolicyName);
 
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "Uploads");
+Directory.CreateDirectory(uploadsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/api/uploads"
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
