@@ -6,8 +6,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import type { ChatMessage } from "@/lib/chat-api"
 import { cn } from "@/lib/utils"
-import { Image, Mic, Plus, SendHorizontal, X } from "lucide-react"
+import { Image, Mic, SendHorizontal, X } from "lucide-react"
 import {
   type ChangeEvent,
   type ComponentProps,
@@ -18,6 +19,8 @@ import {
 
 type MessageComposerProps = {
   onSend: (message: string, images: File[]) => Promise<void>
+  replyingTo: ChatMessage | null
+  onCancelReply: () => void
   disabled?: boolean
 }
 
@@ -33,6 +36,8 @@ const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
 export const MessageComposer = ({
   onSend,
+  replyingTo,
+  onCancelReply,
   disabled = false,
 }: MessageComposerProps) => {
   const [message, setMessage] = useState("")
@@ -45,6 +50,7 @@ export const MessageComposer = ({
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const messageInputRef = useRef<HTMLInputElement>(null)
   const selectedAttachmentsRef = useRef<SelectedAttachment[]>([])
   const canSend =
     (message.trim().length > 0 || selectedAttachments.length > 0) && !disabled
@@ -52,6 +58,12 @@ export const MessageComposer = ({
   useEffect(() => {
     selectedAttachmentsRef.current = selectedAttachments
   }, [selectedAttachments])
+
+  useEffect(() => {
+    if (replyingTo) {
+      messageInputRef.current?.focus()
+    }
+  }, [replyingTo])
 
   useEffect(() => {
     return () => {
@@ -160,6 +172,31 @@ export const MessageComposer = ({
           onChange={handleFileChange}
         />
 
+        {replyingTo && (
+          <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl bg-muted px-3 py-2">
+            <div className="min-w-0 flex-1 border-l-2 border-primary pl-3">
+              <p className="text-xs font-semibold text-primary">
+                Replying to{" "}
+                {replyingTo.isMine ? "yourself" : replyingTo.senderUsername}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {replyingTo.content ||
+                  (replyingTo.attachments.length > 0 ? "Photo" : "Message")}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 rounded-full"
+              onClick={onCancelReply}
+              aria-label="Cancel reply"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        )}
+
         {selectedAttachments.length > 0 && (
           <div className="flex scrollbar-none gap-2 overflow-x-auto px-4 pt-3">
             {selectedAttachments.map((attachment) => {
@@ -223,7 +260,6 @@ export const MessageComposer = ({
               tabIndex={isInputFocused ? -1 : 0}
               onClick={() => fileInputRef.current?.click()}
             >
-              {/* <Plus className="size-6" /> */}
               <Image className="size-6" />
             </Button>
           </div>
@@ -249,6 +285,7 @@ export const MessageComposer = ({
           </div>
 
           <Input
+            ref={messageInputRef}
             type="text"
             placeholder="Say something..."
             aria-label="Message"

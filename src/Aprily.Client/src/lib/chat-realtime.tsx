@@ -5,6 +5,7 @@ import {
   chatQueryKeys,
   type ChatMessage,
   type Conversation,
+  type MessageReactionsUpdated,
 } from "@/lib/chat-api"
 import { useAuthStore } from "@/lib/auth-store"
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr"
@@ -14,6 +15,7 @@ const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api"
 
 export const ChatRealtimeProvider = ({ children }: PropsWithChildren) => {
   const accessToken = useAuthStore((state) => state.accessToken)
+  const currentUserId = useAuthStore((state) => state.user?.id)
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -82,6 +84,34 @@ export const ChatRealtimeProvider = ({ children }: PropsWithChildren) => {
       })
     })
 
+    connection.on(
+      "messageReactionsUpdated",
+      (response: MessageReactionsUpdated) => {
+        queryClient.setQueryData<ChatMessage[]>(
+          chatQueryKeys.messages(response.conversationId),
+          (messages) =>
+            messages?.map((message) => {
+              if (message.id !== response.messageId) {
+                return message
+              }
+
+              const reactions = response.reactions.map((reaction) => ({
+                ...reaction,
+                reactedByMe:
+                  response.actorUserId === currentUserId
+                    ? reaction.reactedByMe
+                    : (message.reactions.find(
+                        (currentReaction) =>
+                          currentReaction.type === reaction.type
+                      )?.reactedByMe ?? false),
+              }))
+
+              return { ...message, reactions }
+            })
+        )
+      }
+    )
+
     void connection.start().catch((error: unknown) => {
       console.error("Unable to connect to chat realtime hub", error)
     })
@@ -89,9 +119,10 @@ export const ChatRealtimeProvider = ({ children }: PropsWithChildren) => {
     return () => {
       connection.off("messageReceived")
       connection.off("conversationUpdated")
+      connection.off("messageReactionsUpdated")
       void connection.stop()
     }
-  }, [accessToken, queryClient])
+  }, [accessToken, currentUserId, queryClient])
 
   return children
 }

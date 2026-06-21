@@ -4,17 +4,52 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { ChatMessage, ChatMessageAttachment } from "@/lib/chat-api"
+import { Button } from "@/components/ui/button"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import type {
+  ChatMessage,
+  ChatMessageAttachment,
+  MessageReactionType,
+} from "@/lib/chat-api"
 import { cn } from "@/lib/utils"
+import { Reply, SmilePlus } from "lucide-react"
 import { useState } from "react"
 
 type MessageBubbleProps = {
   message: ChatMessage
+  onReply: () => void
+  onReact: (type: MessageReactionType) => void
+  onNavigateToMessage: (messageId: string) => void
+  isHighlighted?: boolean
 }
 
-export const MessageBubble = ({ message }: MessageBubbleProps) => {
+const reactionOptions: Array<{
+  type: MessageReactionType
+  emoji: string
+  label: string
+}> = [
+  { type: "like", emoji: "👍", label: "Like" },
+  { type: "love", emoji: "❤️", label: "Love" },
+  { type: "haha", emoji: "😂", label: "Haha" },
+  { type: "sad", emoji: "😢", label: "Sad" },
+  { type: "wow", emoji: "😮", label: "Wow" },
+  { type: "angry", emoji: "😡", label: "Angry" },
+]
+
+export const MessageBubble = ({
+  message,
+  onReply,
+  onReact,
+  onNavigateToMessage,
+  isHighlighted = false,
+}: MessageBubbleProps) => {
   const [previewAttachment, setPreviewAttachment] =
     useState<ChatMessageAttachment | null>(null)
+  const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false)
 
   return (
     <Dialog
@@ -26,43 +61,151 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
       }}
     >
       <div
+        id={`chat-message-${message.id}`}
         className={cn("flex", message.isMine ? "justify-end" : "justify-start")}
       >
         <div
           className={cn(
-            "max-w-[78%] overflow-hidden rounded-2xl p-1 leading-relaxed",
-            message.isMine
-              ? "rounded-br-sm bg-primary text-gray-900"
-              : "rounded-bl-sm bg-muted text-foreground"
+            "group flex max-w-[78%] flex-col rounded-2xl transition-shadow duration-300",
+            isHighlighted &&
+              "ring-2 ring-primary ring-offset-2 ring-offset-background",
+            message.isMine ? "items-end" : "items-start"
           )}
         >
-          {message.attachments.length > 0 && (
-            <div
-              className={cn(
-                "grid gap-1",
-                message.attachments.length > 1 && "grid-cols-2"
-              )}
-            >
-              {message.attachments.map((attachment) => (
-                <button
-                  key={attachment.id}
-                  type="button"
-                  className="block cursor-zoom-in overflow-hidden rounded-xl"
-                  onClick={() => setPreviewAttachment(attachment)}
-                  aria-label={`Preview ${attachment.originalFileName || "chat image"}`}
-                >
-                  <img
-                    src={attachment.url}
-                    alt={attachment.originalFileName || "Chat image"}
-                    loading="lazy"
-                    className="max-h-72 w-full object-cover"
-                  />
-                </button>
-              ))}
+          <div
+            className={cn(
+              "overflow-hidden rounded-2xl p-1 leading-relaxed",
+              message.isMine
+                ? "rounded-br-sm bg-primary text-gray-900"
+                : "rounded-bl-sm bg-muted text-foreground"
+            )}
+          >
+            {message.replyTo && (
+              <button
+                type="button"
+                className="mx-2 mt-2 mb-1 block min-w-0 cursor-pointer border-l-2 border-current px-2 text-left text-xs leading-4 transition-opacity hover:opacity-75"
+                onClick={() => onNavigateToMessage(message.replyTo!.id)}
+                aria-label="Go to original message"
+              >
+                <p className="truncate font-semibold">
+                  {message.replyTo.senderUsername}
+                </p>
+                <p className="max-w-72 truncate opacity-70">
+                  {message.replyTo.content ||
+                    (message.replyTo.hasAttachments ? "Photo" : "Message")}
+                </p>
+              </button>
+            )}
+
+            {message.attachments.length > 0 && (
+              <div
+                className={cn(
+                  "grid gap-1",
+                  message.attachments.length > 1 && "grid-cols-2"
+                )}
+              >
+                {message.attachments.map((attachment) => (
+                  <button
+                    key={attachment.id}
+                    type="button"
+                    className="block cursor-zoom-in overflow-hidden rounded-xl"
+                    onClick={() => setPreviewAttachment(attachment)}
+                    aria-label={`Preview ${attachment.originalFileName || "chat image"}`}
+                  >
+                    <img
+                      src={attachment.url}
+                      alt={attachment.originalFileName || "Chat image"}
+                      loading="lazy"
+                      className="max-h-72 w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {message.content && (
+              <p className={cn("px-2 py-1", message.replyTo && "pt-2")}>
+                {message.content}
+              </p>
+            )}
+          </div>
+
+          {message.reactions.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {message.reactions.map((reaction) => {
+                const option = reactionOptions.find(
+                  (candidate) => candidate.type === reaction.type
+                )
+
+                return (
+                  <button
+                    key={reaction.type}
+                    type="button"
+                    className={cn(
+                      "flex h-7 items-center gap-1 rounded-full border bg-background px-2 text-xs shadow-sm",
+                      reaction.reactedByMe && "border-primary bg-primary/10"
+                    )}
+                    onClick={() => onReact(reaction.type)}
+                    aria-label={`${option?.label || reaction.type}: ${reaction.count}`}
+                  >
+                    <span>{option?.emoji}</span>
+                    <span>{reaction.count}</span>
+                  </button>
+                )
+              })}
             </div>
           )}
 
-          {message.content && <p className="px-2 py-1">{message.content}</p>}
+          <div className="mt-1 flex items-center gap-1 opacity-70 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="rounded-full"
+              onClick={onReply}
+              aria-label="Reply to message"
+            >
+              <Reply className="size-3.5" />
+            </Button>
+
+            <Popover
+              open={isReactionPickerOpen}
+              onOpenChange={setIsReactionPickerOpen}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="rounded-full"
+                  aria-label="React to message"
+                >
+                  <SmilePlus className="size-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="top"
+                align={message.isMine ? "end" : "start"}
+                className="w-auto flex-row gap-1 rounded-full p-1.5"
+              >
+                {reactionOptions.map((option) => (
+                  <button
+                    key={option.type}
+                    type="button"
+                    className="flex size-9 items-center justify-center rounded-full text-xl transition-transform hover:scale-125 hover:bg-muted"
+                    onClick={() => {
+                      onReact(option.type)
+                      setIsReactionPickerOpen(false)
+                    }}
+                    aria-label={option.label}
+                    title={option.label}
+                  >
+                    {option.emoji}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </div>
 

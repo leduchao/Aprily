@@ -8,5 +8,7 @@ public record ChatMessageResponse(
     string? SenderAvatarUrl,
     string? Content,
     IReadOnlyList<ChatMessageAttachmentResponse> Attachments,
+    ChatMessageReplyResponse? ReplyTo,
+    IReadOnlyList<MessageReactionSummaryResponse> Reactions,
     DateTime SentAt,
     bool IsMine);

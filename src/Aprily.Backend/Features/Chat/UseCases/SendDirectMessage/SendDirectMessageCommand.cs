@@ -23,12 +23,14 @@ public record SendDirectMessageResponse(Guid ConversationId, ChatMessageResponse
 public sealed class SendDirectMessageCommand(
     Guid recipientUserId,
     string? content,
-    IReadOnlyList<IFormFile>? images = null)
+    IReadOnlyList<IFormFile>? images = null,
+    Guid? replyToMessageId = null)
     : IRequest<Result<SendDirectMessageResponse>>
 {
     public Guid RecipientUserId { get; init; } = recipientUserId;
     public string? Content { get; init; } = content;
     public IReadOnlyList<IFormFile> Images { get; init; } = images ?? [];
+    public Guid? ReplyToMessageId { get; init; } = replyToMessageId;
 
     public sealed class Handler(
         AppDbContext dbContext,
@@ -102,12 +104,33 @@ public sealed class SendDirectMessageCommand(
                     new Error("chat.send_failed", "Failed to create or load the direct conversation"));
             }
 
+            Message? replyToMessage = null;
+            if (request.ReplyToMessageId is not null)
+            {
+                replyToMessage = await _dbContext.Messages
+                    .Include(candidate => candidate.SenderUser)
+                    .Include(candidate => candidate.MessageAttachments.Where(attachment => !attachment.IsDeleted))
+                    .FirstOrDefaultAsync(
+                        candidate =>
+                            candidate.EntityId == request.ReplyToMessageId &&
+                            candidate.ConversationId == conversation.Id &&
+                            !candidate.IsDeleted,
+                        cancellationToken);
+
+                if (replyToMessage is null)
+                {
+                    return Result<SendDirectMessageResponse>.Failure(
+                        new Error("chat.reply_message_not_found", "The message being replied to was not found"));
+                }
+            }
+
             var now = DateTime.UtcNow;
             var message = new Message
             {
                 EntityId = Guid.NewGuid(),
                 ConversationId = conversation.Id,
                 SenderUserId = sender.Id,
+                ReplyToMessageId = replyToMessage?.Id,
                 Content = content,
                 SentAt = now,
                 CreatedAt = now,
@@ -142,6 +165,14 @@ public sealed class SendDirectMessageCommand(
                 .OrderBy(attachment => attachment.SortOrder)
                 .Select(ToResponse)
                 .ToList();
+            var replyTo = replyToMessage is null
+                ? null
+                : new ChatMessageReplyResponse(
+                    replyToMessage.EntityId,
+                    replyToMessage.SenderUser.EntityId,
+                    replyToMessage.SenderUser.Username,
+                    replyToMessage.Content,
+                    replyToMessage.MessageAttachments.Count > 0);
 
             var responseMessage = new ChatMessageResponse(
                 message.EntityId,
@@ -151,6 +182,8 @@ public sealed class SendDirectMessageCommand(
                 sender.AvatarUrl,
                 message.Content,
                 attachments,
+                replyTo,
+                [],
                 message.SentAt,
                 true);
 

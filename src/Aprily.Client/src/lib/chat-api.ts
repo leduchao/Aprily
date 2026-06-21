@@ -33,8 +33,39 @@ export type ChatMessage = {
   senderAvatarUrl: string | null
   content: string | null
   attachments: ChatMessageAttachment[]
+  replyTo: ChatMessageReply | null
+  reactions: MessageReactionSummary[]
   sentAt: string
   isMine: boolean
+}
+
+export type ChatMessageReply = {
+  id: string
+  senderUserId: string
+  senderUsername: string
+  content: string | null
+  hasAttachments: boolean
+}
+
+export type MessageReactionType =
+  | "like"
+  | "love"
+  | "haha"
+  | "sad"
+  | "wow"
+  | "angry"
+
+export type MessageReactionSummary = {
+  type: MessageReactionType
+  count: number
+  reactedByMe: boolean
+}
+
+export type MessageReactionsUpdated = {
+  conversationId: string
+  messageId: string
+  actorUserId: string
+  reactions: MessageReactionSummary[]
 }
 
 export type ChatMessageAttachment = {
@@ -53,6 +84,7 @@ export type SendDirectMessageInput = {
   recipientUserId: string
   content: string
   images?: File[]
+  replyToMessageId?: string
 }
 
 export type SendDirectMessageResponse = {
@@ -104,6 +136,9 @@ export const sendDirectMessage = async (input: SendDirectMessageInput) => {
     const formData = new FormData()
     formData.append("recipientUserId", input.recipientUserId)
     formData.append("content", input.content)
+    if (input.replyToMessageId) {
+      formData.append("replyToMessageId", input.replyToMessageId)
+    }
     input.images.forEach((image) => formData.append("images", image))
 
     return apiClient.post<SendDirectMessageResponse, FormData>(
@@ -114,8 +149,22 @@ export const sendDirectMessage = async (input: SendDirectMessageInput) => {
 
   return apiClient.post<SendDirectMessageResponse, SendDirectMessageInput>(
     "/chat/direct-messages",
-    { recipientUserId: input.recipientUserId, content: input.content }
+    {
+      recipientUserId: input.recipientUserId,
+      content: input.content,
+      replyToMessageId: input.replyToMessageId,
+    }
   )
+}
+
+export const setMessageReaction = async (input: {
+  messageId: string
+  type: MessageReactionType | null
+}) => {
+  return apiClient.put<
+    MessageReactionsUpdated,
+    { type: MessageReactionType | null }
+  >(`/chat/messages/${input.messageId}/reaction`, { type: input.type })
 }
 
 export const markConversationAsRead = async (
@@ -170,6 +219,25 @@ export const useSendDirectMessageMutation = () => {
           queryKey: chatQueryKeys.messages(response.conversationId),
         }),
       ])
+    },
+  })
+}
+
+export const useSetMessageReactionMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: setMessageReaction,
+    onSuccess: (response) => {
+      queryClient.setQueryData<ChatMessage[]>(
+        chatQueryKeys.messages(response.conversationId),
+        (messages) =>
+          messages?.map((message) =>
+            message.id === response.messageId
+              ? { ...message, reactions: response.reactions }
+              : message
+          )
+      )
     },
   })
 }

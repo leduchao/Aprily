@@ -1,13 +1,23 @@
 import { MessageBubble } from "@/components/thread-details/message-bubble"
-import type { ChatMessage } from "@/lib/chat-api"
-import { useLayoutEffect, useRef } from "react"
+import type { ChatMessage, MessageReactionType } from "@/lib/chat-api"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
 type MessageListProps = {
   messages: ChatMessage[]
+  onReply: (message: ChatMessage) => void
+  onReact: (message: ChatMessage, type: MessageReactionType) => void
 }
 
-export const MessageList = ({ messages }: MessageListProps) => {
+export const MessageList = ({
+  messages,
+  onReply,
+  onReact,
+}: MessageListProps) => {
   const messageListRef = useRef<HTMLElement>(null)
+  const highlightTimeoutRef = useRef<number | null>(null)
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | null
+  >(null)
 
   useLayoutEffect(() => {
     const messageList = messageListRef.current
@@ -15,7 +25,34 @@ export const MessageList = ({ messages }: MessageListProps) => {
     if (messageList) {
       messageList.scrollTop = messageList.scrollHeight
     }
-  }, [messages])
+  }, [messages.length])
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const navigateToMessage = (messageId: string) => {
+    const messageElement = document.getElementById(`chat-message-${messageId}`)
+    if (!messageElement || !messageListRef.current?.contains(messageElement)) {
+      return
+    }
+
+    messageElement.scrollIntoView({ behavior: "smooth", block: "center" })
+    setHighlightedMessageId(messageId)
+
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current)
+    }
+
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedMessageId(null)
+      highlightTimeoutRef.current = null
+    }, 1600)
+  }
 
   return (
     <section
@@ -27,7 +64,14 @@ export const MessageList = ({ messages }: MessageListProps) => {
 
         <div className="space-y-3">
           {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble
+              key={message.id}
+              message={message}
+              onReply={() => onReply(message)}
+              onReact={(type) => onReact(message, type)}
+              onNavigateToMessage={navigateToMessage}
+              isHighlighted={highlightedMessageId === message.id}
+            />
           ))}
 
           {messages.length > 0 && (

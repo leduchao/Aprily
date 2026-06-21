@@ -26,6 +26,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MessageAttachment> MessageAttachments { get; set; }
 
+    public virtual DbSet<MessageReaction> MessageReactions { get; set; }
+
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -255,6 +257,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.ConversationId, e.SentAt, e.Id }, "ix_messages_conversation_id_sent_at_id").IsDescending(false, true, true);
 
+            entity.HasIndex(e => e.ReplyToMessageId, "ix_messages_reply_to_message_id");
+
             entity.HasIndex(e => e.SenderUserId, "ix_messages_sender_user_id");
 
             entity.Property(e => e.Id).HasColumnName("id");
@@ -269,6 +273,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("entity_id");
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.ReplyToMessageId).HasColumnName("reply_to_message_id");
             entity.Property(e => e.SenderUserId).HasColumnName("sender_user_id");
             entity.Property(e => e.SentAt)
                 .HasDefaultValueSql("now()")
@@ -280,6 +285,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Conversation).WithMany(p => p.Messages)
                 .HasForeignKey(d => d.ConversationId)
                 .HasConstraintName("fk_messages_conversations_conversation_id");
+
+            entity.HasOne(d => d.ReplyToMessage).WithMany(p => p.InverseReplyToMessage)
+                .HasForeignKey(d => d.ReplyToMessageId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_messages_messages_reply_to_message_id");
 
             entity.HasOne(d => d.SenderUser).WithMany(p => p.Messages)
                 .HasForeignKey(d => d.SenderUserId)
@@ -332,6 +342,48 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Message).WithMany(p => p.MessageAttachments)
                 .HasForeignKey(d => d.MessageId)
                 .HasConstraintName("fk_message_attachments_messages_message_id");
+        });
+
+        modelBuilder.Entity<MessageReaction>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("message_reactions_pkey");
+
+            entity.ToTable("message_reactions");
+
+            entity.HasIndex(e => new { e.MessageId, e.Type }, "ix_message_reactions_message_id_type").HasFilter("(is_deleted = false)");
+
+            entity.HasIndex(e => e.UserId, "ix_message_reactions_user_id");
+
+            entity.HasIndex(e => e.EntityId, "ux_message_reactions_entity_id").IsUnique();
+
+            entity.HasIndex(e => new { e.MessageId, e.UserId }, "ux_message_reactions_message_id_user_id")
+                .IsUnique()
+                .HasFilter("(is_deleted = false)");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EntityId)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("entity_id");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.MessageId).HasColumnName("message_id");
+            entity.Property(e => e.Type)
+                .HasMaxLength(20)
+                .HasColumnName("type");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.Message).WithMany(p => p.MessageReactions)
+                .HasForeignKey(d => d.MessageId)
+                .HasConstraintName("fk_message_reactions_messages_message_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MessageReactions)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_message_reactions_users_user_id");
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
