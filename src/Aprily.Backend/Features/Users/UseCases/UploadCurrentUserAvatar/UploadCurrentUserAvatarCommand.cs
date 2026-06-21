@@ -1,4 +1,5 @@
 using Aprily.Backend.Common.Results;
+using Aprily.Backend.Common.Constants;
 using Aprily.Backend.Database;
 using Aprily.Backend.Features.Users.Models;
 using Aprily.Backend.Features.Users.Services;
@@ -52,7 +53,10 @@ public sealed class UploadCurrentUserAvatarCommandHandler(
             return Result<UserBasicInfo>.Failure(new Error("users.user_notFound", "User not found"));
         }
 
-        var avatarsDirectory = Path.Combine(environment.ContentRootPath, "Uploads", "Avatars");
+        var avatarsDirectory = Path.Combine(
+            environment.ContentRootPath,
+            UploadPaths.RootDirectoryName,
+            UploadPaths.AvatarsDirectoryName);
         Directory.CreateDirectory(avatarsDirectory);
 
         var fileName = $"{user.EntityId:N}-{Guid.NewGuid():N}{extension}";
@@ -70,7 +74,7 @@ public sealed class UploadCurrentUserAvatarCommandHandler(
         }
 
         var oldAvatarUrl = user.AvatarUrl;
-        user.AvatarUrl = $"/api/uploads/avatars/{fileName}";
+        user.AvatarUrl = UploadPaths.GetAvatarUrl(fileName);
 
         try
         {
@@ -96,8 +100,19 @@ public sealed class UploadCurrentUserAvatarCommandHandler(
 
     private static void DeleteOldLocalAvatar(string? avatarUrl, string avatarsDirectory)
     {
-        const string localAvatarPrefix = "/api/uploads/avatars/";
-        if (avatarUrl is null || !avatarUrl.StartsWith(localAvatarPrefix, StringComparison.Ordinal))
+        if (avatarUrl is null)
+        {
+            return;
+        }
+
+        var isLocalAvatar = avatarUrl.StartsWith(
+                $"{UploadPaths.AvatarsRequestPath}/",
+                StringComparison.Ordinal) ||
+            avatarUrl.StartsWith(
+                $"{UploadPaths.BaseRequestPath}/{UploadPaths.AvatarsDirectoryName}/",
+                StringComparison.Ordinal);
+
+        if (!isLocalAvatar)
         {
             return;
         }
