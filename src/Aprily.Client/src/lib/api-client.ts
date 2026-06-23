@@ -96,7 +96,14 @@ const sendRequest = async <TBody>(
 ) => {
   const headers = new Headers(options?.headers)
 
-  if (options?.body !== undefined && !headers.has("Content-Type")) {
+  const isFormData =
+    typeof FormData !== "undefined" && options?.body instanceof FormData
+
+  if (
+    options?.body !== undefined &&
+    !isFormData &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json")
   }
 
@@ -105,13 +112,19 @@ const sendRequest = async <TBody>(
     headers.set("Authorization", `Bearer ${accessToken}`)
   }
 
+  const body: BodyInit | undefined =
+    options?.body === undefined
+      ? undefined
+      : isFormData
+        ? (options.body as FormData)
+        : JSON.stringify(options.body)
+
   return fetch(resolveUrl(path), {
     method,
     headers,
     credentials: options?.credentials ?? "include",
     signal: options?.signal,
-    body:
-      options?.body === undefined ? undefined : JSON.stringify(options.body),
+    body,
   })
 }
 
@@ -154,12 +167,19 @@ const refreshSessionInternal = async () => {
 
     const payload = await parseResponse(response)
 
-    if (!response.ok || !isApiResult<AuthPayload>(payload) || payload.isFailure || !payload.data) {
+    if (
+      !response.ok ||
+      !isApiResult<AuthPayload>(payload) ||
+      payload.isFailure ||
+      !payload.data
+    ) {
       useAuthStore.getState().clearSession()
       return null
     }
 
-    useAuthStore.getState().setSession(payload.data.accessToken, payload.data.user)
+    useAuthStore
+      .getState()
+      .setSession(payload.data.accessToken, payload.data.user)
     return payload.data.accessToken
   } catch {
     useAuthStore.getState().clearSession()

@@ -1,11 +1,13 @@
 import { ThreadItem } from "@/components/home/thread-item"
-import { useConversationsQuery } from "@/lib/chat-api"
+import { type Conversation, useConversationsQuery } from "@/lib/chat-api"
+import { useAuthStore } from "@/lib/auth-store"
 import { cn } from "@/lib/utils"
 import { Link } from "@tanstack/react-router"
 import { Ellipsis, LoaderCircle } from "lucide-react"
 
 export const ThreadList = () => {
   const conversationsQuery = useConversationsQuery()
+  const currentUserId = useAuthStore((state) => state.user?.id)
 
   return (
     <section className="min-h-0 flex-1 scrollbar-none overflow-x-hidden overflow-y-auto">
@@ -48,7 +50,7 @@ export const ThreadList = () => {
                 conversation.otherUser.fullName ||
                 conversation.otherUser.username
               }
-              message={conversation.lastMessage?.content ?? "Say hello"}
+              message={formatLastMessage(conversation, currentUserId)}
               time={formatConversationTime(conversation.lastMessageAt)}
               unreadCount={conversation.unreadCount}
             />
@@ -57,6 +59,23 @@ export const ThreadList = () => {
       </div>
     </section>
   )
+}
+
+const formatLastMessage = (
+  conversation: Conversation,
+  currentUserId?: string
+) => {
+  if (!conversation.lastMessage) {
+    return "Say hello"
+  }
+
+  const message =
+    conversation.lastMessage.content ||
+    (conversation.lastMessage.hasAttachments ? "📷 Photo" : "Message")
+
+  return conversation.lastMessage.senderUserId === currentUserId
+    ? `You: ${message}`
+    : message
 }
 
 const formatConversationTime = (value: string | null) => {

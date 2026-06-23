@@ -1,4 +1,5 @@
 using Aprily.Backend.Common.Extensions;
+using Aprily.Backend.Common.Constants;
 using Aprily.Backend.Features.Chat;
 using Aprily.Backend.Features.Chat.Hubs;
 using Aprily.Backend.Features.Friends;
@@ -25,6 +26,22 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.UseCors(ServiceCollectionExtension.CorsPolicyName);
+
+var uploadsPath = Path.Combine(
+    app.Environment.ContentRootPath,
+    UploadPaths.RootDirectoryName);
+
+foreach (var (requestPath, directoryName) in UploadPaths.PublicDirectories)
+{
+    var physicalPath = Path.Combine(uploadsPath, directoryName);
+    Directory.CreateDirectory(physicalPath);
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(physicalPath),
+        RequestPath = requestPath
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

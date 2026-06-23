@@ -4,6 +4,8 @@ using Aprily.Backend.Features.Users.UseCases.Auth.SignIn;
 using Aprily.Backend.Features.Users.UseCases.Auth.SignOut;
 using Aprily.Backend.Features.Users.UseCases.Auth.SignUp;
 using Aprily.Backend.Features.Users.UseCases.GetUserProfile;
+using Aprily.Backend.Features.Users.UseCases.UpdateCurrentUserProfile;
+using Aprily.Backend.Features.Users.UseCases.UploadCurrentUserAvatar;
 
 namespace Aprily.Backend.Features.Users;
 
@@ -26,5 +28,7 @@ public static class UsersEndpoints
         auth.MapSignOutEndpoint();
 
         users.MapGetUserProfileEndpoint();
+        users.MapUpdateCurrentUserProfileEndpoint();
+        users.MapUploadCurrentUserAvatarEndpoint();
     }
 }

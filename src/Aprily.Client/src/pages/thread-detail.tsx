@@ -6,10 +6,13 @@ import {
   useConversationsQuery,
   useMarkConversationAsReadMutation,
   useSendDirectMessageMutation,
+  useSetMessageReactionMutation,
+  type ChatMessage,
+  type MessageReactionType,
 } from "@/lib/chat-api"
 import { useParams } from "@tanstack/react-router"
 import { LoaderCircle } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export const ThreadDetailPage = () => {
   const { threadId } = useParams({
@@ -20,6 +23,8 @@ export const ThreadDetailPage = () => {
   const messagesQuery = useConversationMessagesQuery(threadId)
   const sendMessageMutation = useSendDirectMessageMutation()
   const markAsReadMutation = useMarkConversationAsReadMutation()
+  const setReactionMutation = useSetMessageReactionMutation()
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
   const lastMarkedMessageIdRef = useRef<string | null>(null)
 
   const conversation = conversationsQuery.data?.find(
@@ -45,14 +50,28 @@ export const ThreadDetailPage = () => {
     })
   }, [latestMessage, markAsReadMutation, threadId])
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string, images: File[]) => {
     if (!conversation) {
       return
     }
 
-    sendMessageMutation.mutate({
+    await sendMessageMutation.mutateAsync({
       recipientUserId: conversation.otherUser.id,
       content,
+      images,
+      replyToMessageId: replyingTo?.id,
+    })
+    setReplyingTo(null)
+  }
+
+  const handleReact = (message: ChatMessage, type: MessageReactionType) => {
+    const isRemoving = message.reactions.some(
+      (reaction) => reaction.type === type && reaction.reactedByMe
+    )
+
+    setReactionMutation.mutate({
+      messageId: message.id,
+      type: isRemoving ? null : type,
     })
   }
 
@@ -78,11 +97,17 @@ export const ThreadDetailPage = () => {
           Could not load this conversation.
         </section>
       ) : (
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages}
+          onReply={setReplyingTo}
+          onReact={handleReact}
+        />
       )}
 
       <MessageComposer
         onSend={handleSendMessage}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
         disabled={!conversation || sendMessageMutation.isPending}
       />
     </main>

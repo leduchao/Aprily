@@ -1,8 +1,8 @@
 namespace Aprily.Backend.Features.Chat.Models;
 
-public record LastMessageResponse(
+public record ChatMessageReplyResponse(
     Guid Id,
     Guid SenderUserId,
+    string SenderUsername,
     string? Content,
-    bool HasAttachments,
-    DateTime SentAt);
+    bool HasAttachments);

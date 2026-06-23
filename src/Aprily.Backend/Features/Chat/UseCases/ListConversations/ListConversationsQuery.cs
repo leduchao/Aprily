@@ -46,6 +46,12 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                     lm.entity_id AS LastMessageId,
                     lms.entity_id AS LastMessageSenderUserId,
                     lm.content AS LastMessageContent,
+                    EXISTS (
+                        SELECT 1
+                        FROM message_attachments lma
+                        WHERE lma.message_id = lm.id
+                        AND lma.is_deleted = false
+                    ) AS LastMessageHasAttachments,
                     lm.sent_at AS LastMessageSentAt,
                     COALESCE(unread.unread_count, 0) AS UnreadCount
                 FROM me cu
@@ -108,7 +114,8 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                         : new LastMessageResponse(
                             row.LastMessageId.Value,
                             row.LastMessageSenderUserId.Value,
-                            row.LastMessageContent ?? string.Empty,
+                            row.LastMessageContent,
+                            row.LastMessageHasAttachments,
                             row.LastMessageSentAt.Value),
                     row.LastMessageAt,
                     row.UnreadCount))
@@ -129,6 +136,7 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
             public Guid? LastMessageId { get; init; }
             public Guid? LastMessageSenderUserId { get; init; }
             public string? LastMessageContent { get; init; }
+            public bool LastMessageHasAttachments { get; init; }
             public DateTime? LastMessageSentAt { get; init; }
             public int UnreadCount { get; init; }
         }

@@ -6,8 +6,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import type { ChatMessage } from "@/lib/chat-api"
 import { cn } from "@/lib/utils"
-import { File as FileIcon, Mic, Plus, SendHorizontal, X } from "lucide-react"
+import { Image, Mic, SendHorizontal, X } from "lucide-react"
 import {
   type ChangeEvent,
   type ComponentProps,
@@ -17,18 +18,26 @@ import {
 } from "react"
 
 type MessageComposerProps = {
-  onSend: (message: string) => void
+  onSend: (message: string, images: File[]) => Promise<void>
+  replyingTo: ChatMessage | null
+  onCancelReply: () => void
   disabled?: boolean
 }
 
 type SelectedAttachment = {
   id: string
   file: File
-  previewUrl?: string
+  previewUrl: string
 }
+
+const maxImageCount = 4
+const maxImageSize = 10 * 1024 * 1024
+const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
 export const MessageComposer = ({
   onSend,
+  replyingTo,
+  onCancelReply,
   disabled = false,
 }: MessageComposerProps) => {
   const [message, setMessage] = useState("")
@@ -38,13 +47,23 @@ export const MessageComposer = ({
   >([])
   const [previewAttachment, setPreviewAttachment] =
     useState<SelectedAttachment | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const [sendError, setSendError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const messageInputRef = useRef<HTMLInputElement>(null)
   const selectedAttachmentsRef = useRef<SelectedAttachment[]>([])
-  const canSend = message.trim().length > 0 && !disabled
+  const canSend =
+    (message.trim().length > 0 || selectedAttachments.length > 0) && !disabled
 
   useEffect(() => {
     selectedAttachmentsRef.current = selectedAttachments
   }, [selectedAttachments])
+
+  useEffect(() => {
+    if (replyingTo) {
+      messageInputRef.current?.focus()
+    }
+  }, [replyingTo])
 
   useEffect(() => {
     return () => {
@@ -58,19 +77,34 @@ export const MessageComposer = ({
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])
+    event.target.value = ""
+
+    if (selectedAttachments.length + files.length > maxImageCount) {
+      setAttachmentError(`You can send up to ${maxImageCount} images at once`)
+      return
+    }
+
+    if (files.some((file) => !allowedImageTypes.includes(file.type))) {
+      setAttachmentError("Choose JPG, PNG, WEBP, or GIF images")
+      return
+    }
+
+    if (files.some((file) => file.size === 0 || file.size > maxImageSize)) {
+      setAttachmentError("Each image must be non-empty and smaller than 10 MB")
+      return
+    }
+
+    setAttachmentError(null)
     const attachments = files.map((file, index) => ({
       id: `${file.name}-${file.lastModified}-${file.size}-${Date.now()}-${index}`,
       file,
-      previewUrl: file.type.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : undefined,
+      previewUrl: URL.createObjectURL(file),
     }))
 
     setSelectedAttachments((currentAttachments) => [
       ...currentAttachments,
       ...attachments,
     ])
-    event.target.value = ""
   }
 
   const removeAttachment = (attachmentId: string) => {
@@ -93,15 +127,30 @@ export const MessageComposer = ({
     }
   }
 
-  const handleSubmit: ComponentProps<"form">["onSubmit"] = (event) => {
+  const handleSubmit: ComponentProps<"form">["onSubmit"] = async (event) => {
     event.preventDefault()
 
     if (!canSend) {
       return
     }
 
-    onSend(message.trim())
-    setMessage("")
+    try {
+      setSendError(null)
+      await onSend(
+        message.trim(),
+        selectedAttachments.map((attachment) => attachment.file)
+      )
+
+      selectedAttachments.forEach((attachment) => {
+        URL.revokeObjectURL(attachment.previewUrl)
+      })
+      setMessage("")
+      setSelectedAttachments([])
+      setAttachmentError(null)
+    } catch {
+      // Keep the draft so the user can retry the failed send.
+      setSendError("Could not send this message. Please try again.")
+    }
   }
 
   return (
@@ -118,15 +167,39 @@ export const MessageComposer = ({
           ref={fileInputRef}
           type="file"
           multiple
+          accept="image/jpeg,image/png,image/webp,image/gif"
           className="hidden"
           onChange={handleFileChange}
         />
 
+        {replyingTo && (
+          <div className="mx-4 mt-3 flex items-center gap-3 rounded-2xl bg-muted px-3 py-2">
+            <div className="min-w-0 flex-1 border-l-2 border-primary pl-3">
+              <p className="text-xs font-semibold text-primary">
+                Replying to{" "}
+                {replyingTo.isMine ? "yourself" : replyingTo.senderUsername}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {replyingTo.content ||
+                  (replyingTo.attachments.length > 0 ? "Photo" : "Message")}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 rounded-full"
+              onClick={onCancelReply}
+              aria-label="Cancel reply"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        )}
+
         {selectedAttachments.length > 0 && (
           <div className="flex scrollbar-none gap-2 overflow-x-auto px-4 pt-3">
             {selectedAttachments.map((attachment) => {
-              const isImage = Boolean(attachment.previewUrl)
-
               return (
                 <div
                   key={attachment.id}
@@ -136,23 +209,15 @@ export const MessageComposer = ({
                     type="button"
                     className={cn(
                       "flex min-w-0 items-center gap-2",
-                      isImage && "cursor-pointer"
+                      "cursor-pointer"
                     )}
-                    onClick={() => {
-                      if (isImage) {
-                        setPreviewAttachment(attachment)
-                      }
-                    }}
+                    onClick={() => setPreviewAttachment(attachment)}
                   >
-                    {attachment.previewUrl ? (
-                      <img
-                        src={attachment.previewUrl}
-                        alt=""
-                        className="size-7 shrink-0 rounded-full object-cover"
-                      />
-                    ) : (
-                      <FileIcon className="size-4 shrink-0" />
-                    )}
+                    <img
+                      src={attachment.previewUrl}
+                      alt=""
+                      className="size-7 shrink-0 rounded-full object-cover"
+                    />
                     <span className="truncate">{attachment.file.name}</span>
                   </button>
                   <Button
@@ -169,6 +234,12 @@ export const MessageComposer = ({
               )
             })}
           </div>
+        )}
+
+        {(attachmentError || sendError) && (
+          <p role="alert" className="px-4 pt-2 text-xs text-destructive">
+            {attachmentError || sendError}
+          </p>
         )}
 
         <form className="flex items-center px-4 py-3" onSubmit={handleSubmit}>
@@ -189,7 +260,7 @@ export const MessageComposer = ({
               tabIndex={isInputFocused ? -1 : 0}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Plus className="size-6" />
+              <Image className="size-6" />
             </Button>
           </div>
 
@@ -214,6 +285,7 @@ export const MessageComposer = ({
           </div>
 
           <Input
+            ref={messageInputRef}
             type="text"
             placeholder="Say something..."
             aria-label="Message"
