@@ -66,7 +66,13 @@ export const MessageList = ({
 
         <div className="space-y-3">
           {messages.map((message, index) => {
+            const previousMessage = messages[index - 1]
             const nextMessage = messages[index + 1]
+            const showSenderIdentity =
+              !message.isMine &&
+              (!previousMessage ||
+                previousMessage.senderUserId !== message.senderUserId ||
+                hasFiveMinuteGap(previousMessage.sentAt, message.sentAt))
             const showTimestamp =
               !nextMessage ||
               nextMessage.senderUserId !== message.senderUserId ||
@@ -76,8 +82,11 @@ export const MessageList = ({
               <MessageBubble
                 key={message.id}
                 message={message}
-                showSenderAvatar={!message.isMine}
-                showSenderName={isGroup && !message.isMine}
+                showSenderAvatar={showSenderIdentity}
+                reserveSenderAvatarSpace={
+                  !message.isMine && !showSenderIdentity
+                }
+                showSenderName={isGroup && showSenderIdentity}
                 showReactionDetails={isGroup}
                 showTimestamp={showTimestamp}
                 onReply={() => onReply(message)}
@@ -102,3 +111,6 @@ export const MessageList = ({
 const isSameMinute = (first: string, second: string) =>
   Math.floor(new Date(first).getTime() / 60_000) ===
   Math.floor(new Date(second).getTime() / 60_000)
+
+const hasFiveMinuteGap = (first: string, second: string) =>
+  new Date(second).getTime() - new Date(first).getTime() >= 5 * 60_000

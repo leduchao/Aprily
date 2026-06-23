@@ -6,6 +6,11 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import type {
   ChatMessage,
   ChatMessageAttachment,
@@ -13,7 +18,7 @@ import type {
 } from "@/lib/chat-api"
 import { cn } from "@/lib/utils"
 import { Reply, SmilePlus } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 type MessageBubbleProps = {
   message: ChatMessage
@@ -23,6 +28,7 @@ type MessageBubbleProps = {
   isHighlighted?: boolean
   showSenderName?: boolean
   showSenderAvatar?: boolean
+  reserveSenderAvatarSpace?: boolean
   showReactionDetails?: boolean
   showTimestamp?: boolean
 }
@@ -48,12 +54,36 @@ export const MessageBubble = ({
   isHighlighted = false,
   showSenderName = false,
   showSenderAvatar = false,
+  reserveSenderAvatarSpace = false,
   showReactionDetails = false,
   showTimestamp = true,
 }: MessageBubbleProps) => {
   const [previewAttachment, setPreviewAttachment] =
     useState<ChatMessageAttachment | null>(null)
   const [isQuickReactionOpen, setIsQuickReactionOpen] = useState(false)
+  const quickReactionCloseTimeoutRef = useRef<number | null>(null)
+
+  const cancelQuickReactionClose = () => {
+    if (quickReactionCloseTimeoutRef.current !== null) {
+      window.clearTimeout(quickReactionCloseTimeoutRef.current)
+      quickReactionCloseTimeoutRef.current = null
+    }
+  }
+
+  const openQuickReactionPicker = () => {
+    cancelQuickReactionClose()
+    setIsQuickReactionOpen(true)
+  }
+
+  const scheduleQuickReactionClose = () => {
+    cancelQuickReactionClose()
+    quickReactionCloseTimeoutRef.current = window.setTimeout(() => {
+      setIsQuickReactionOpen(false)
+      quickReactionCloseTimeoutRef.current = null
+    }, 200)
+  }
+
+  useEffect(() => cancelQuickReactionClose, [])
 
   return (
     <Dialog
@@ -84,6 +114,9 @@ export const MessageBubble = ({
                 {getFallback(message.senderUsername)}
               </AvatarFallback>
             </Avatar>
+          )}
+          {reserveSenderAvatarSpace && (
+            <span aria-hidden="true" className="size-8 shrink-0" />
           )}
 
           <div
@@ -221,32 +254,42 @@ export const MessageBubble = ({
 
               <div
                 className="relative"
-                onMouseEnter={() => setIsQuickReactionOpen(true)}
-                onMouseLeave={() => setIsQuickReactionOpen(false)}
-                onFocus={() => setIsQuickReactionOpen(true)}
+                onMouseEnter={openQuickReactionPicker}
+                onMouseLeave={scheduleQuickReactionClose}
+                onFocus={openQuickReactionPicker}
                 onBlur={(event) => {
                   if (!event.currentTarget.contains(event.relatedTarget)) {
-                    setIsQuickReactionOpen(false)
+                    scheduleQuickReactionClose()
                   }
                 }}
               >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  className="rounded-full"
-                  aria-label="React to message"
-                  onClick={() => setIsQuickReactionOpen(true)}
+                <Popover
+                  open={isQuickReactionOpen}
+                  onOpenChange={setIsQuickReactionOpen}
                 >
-                  <SmilePlus className="size-4" />
-                </Button>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="rounded-full"
+                      aria-label="React to message"
+                      onClick={openQuickReactionPicker}
+                    >
+                      <SmilePlus className="size-4" />
+                    </Button>
+                  </PopoverTrigger>
 
-                {isQuickReactionOpen && (
-                  <div
-                    className={cn(
-                      "absolute bottom-full z-50 flex gap-1 rounded-full bg-popover p-1.5 shadow-lg ring-1 ring-foreground/5",
-                      message.isMine ? "right-0" : "left-0"
-                    )}
+                  <PopoverContent
+                    side="top"
+                    sideOffset={0}
+                    align={message.isMine ? "end" : "start"}
+                    collisionPadding={12}
+                    className="w-auto flex-row gap-1 rounded-full p-1.5"
+                    onMouseEnter={openQuickReactionPicker}
+                    onMouseLeave={scheduleQuickReactionClose}
+                    onOpenAutoFocus={(event) => event.preventDefault()}
+                    onCloseAutoFocus={(event) => event.preventDefault()}
                   >
                     {reactionOptions.map((option) => (
                       <button
@@ -255,6 +298,7 @@ export const MessageBubble = ({
                         className="flex size-9 items-center justify-center rounded-full text-xl transition-transform hover:scale-125 hover:bg-muted"
                         onClick={() => {
                           onReact(option.type)
+                          cancelQuickReactionClose()
                           setIsQuickReactionOpen(false)
                         }}
                         aria-label={option.label}
@@ -263,8 +307,8 @@ export const MessageBubble = ({
                         {option.emoji}
                       </button>
                     ))}
-                  </div>
-                )}
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
