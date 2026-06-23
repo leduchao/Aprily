@@ -1,11 +1,13 @@
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database.Connection;
+using Aprily.Backend.Features.Chat.Hubs;
 using Aprily.Backend.Features.Friends.Models;
 using Aprily.Backend.Features.Users.Services;
 
 using Dapper;
 
 using MediatR;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Aprily.Backend.Features.Friends.UseCases.SendFriendRequest;
 
@@ -15,11 +17,15 @@ public sealed class SendFriendRequestCommand(Guid? recipientUserId, string? emai
     public Guid? RecipientUserId { get; init; } = recipientUserId;
     public string? Email { get; init; } = email;
 
-    public sealed class Handler(IDbConnectionFactory dbConnectionFactory, ICurrentUser currentUser)
+    public sealed class Handler(
+        IDbConnectionFactory dbConnectionFactory,
+        ICurrentUser currentUser,
+        IHubContext<ChatHub> chatHub)
         : IRequestHandler<SendFriendRequestCommand, Result<FriendRequestResponse>>
     {
         private readonly IDbConnectionFactory _dbConnectionFactory = dbConnectionFactory;
         private readonly ICurrentUser _currentUser = currentUser;
+        private readonly IHubContext<ChatHub> _chatHub = chatHub;
 
         public async Task<Result<FriendRequestResponse>> Handle(
             SendFriendRequestCommand request,
@@ -133,6 +139,14 @@ public sealed class SendFriendRequestCommand(Guid? recipientUserId, string? emai
                     cancellationToken: cancellationToken));
 
             var response = await LoadFriendRequest(conn, friendRequestId, cancellationToken);
+
+            await _chatHub.Clients
+                .Groups(
+                    ChatHub.UserGroup(requester.Id),
+                    ChatHub.UserGroup(addressee.Id))
+                .SendAsync(
+                    ChatHub.FriendRequestsUpdatedEvent,
+                    cancellationToken);
 
             return Result<FriendRequestResponse>.Success(response!);
         }
