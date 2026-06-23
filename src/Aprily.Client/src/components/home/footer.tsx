@@ -36,6 +36,7 @@ import {
 } from "@/lib/friends-api"
 import { cn } from "@/lib/utils"
 import { useNavigate } from "@tanstack/react-router"
+import { toast } from "sonner"
 
 type FooterMode = "menu" | "new-chat" | "new-contact" | "requests"
 
@@ -185,13 +186,6 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
   const [identifier, setIdentifier] = useState("")
   const sendFriendRequestMutation = useSendFriendRequestMutation()
 
-  const errorMessage =
-    sendFriendRequestMutation.error instanceof ApiError
-      ? sendFriendRequestMutation.error.message
-      : sendFriendRequestMutation.error
-        ? "Could not send friend request"
-        : null
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -203,7 +197,17 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
     sendFriendRequestMutation.mutate(
       value.includes("@") ? { email: value } : { recipientUserId: value },
       {
-        onSuccess: () => setIdentifier(""),
+        onSuccess: () => {
+          setIdentifier("")
+          toast.success("Friend request sent")
+        },
+        onError: (error) => {
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "Could not send friend request"
+          )
+        },
       }
     )
   }
@@ -225,18 +229,6 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
             autoComplete="off"
           />
         </div>
-
-        {sendFriendRequestMutation.isSuccess && (
-          <p className="rounded-2xl bg-primary/20 px-3 py-2 text-sm text-foreground">
-            Friend request sent.
-          </p>
-        )}
-
-        {errorMessage && (
-          <p className="rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {errorMessage}
-          </p>
-        )}
 
         <Button
           className="w-full"
@@ -275,26 +267,19 @@ const NewChatPanel = ({
           params: { threadId: response.conversationId },
         })
       },
+      onError: (error) => {
+        toast.error(
+          error instanceof ApiError ? error.message : "Could not open chat"
+        )
+      },
     })
   }
-
-  const errorMessage =
-    openConversationMutation.error instanceof ApiError
-      ? openConversationMutation.error.message
-      : openConversationMutation.error
-        ? "Could not open chat"
-        : null
 
   return (
     <div className="p-5">
       <PanelHeader title="New Chat" onBack={onBack} />
 
       <div className="mt-4 max-h-80 overflow-y-auto">
-        {errorMessage && (
-          <p className="mb-3 rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {errorMessage}
-          </p>
-        )}
         {friendsQuery.isLoading && <LoadingRow label="Loading friends" />}
         {friendsQuery.isError && (
           <EmptyState label="Could not load your friends." />
