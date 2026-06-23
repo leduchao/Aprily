@@ -1,9 +1,8 @@
 import { Footer } from "@/components/home/footer"
+import { ConversationSearchDialog } from "@/components/home/conversation-search-dialog"
 import { FriendRequestsDialog } from "@/components/home/friend-requests-dialog"
 import { NoteList } from "@/components/home/note-list"
 import { ThreadList } from "@/components/home/thread-list"
-import { Button } from "@/components/ui/button"
-import { Search } from "lucide-react"
 
 export const HomePage = () => {
   return (
@@ -13,15 +12,7 @@ export const HomePage = () => {
         <h1 className="text-3xl font-bold">Aprily</h1>
         <div className="flex items-center gap-1">
           <FriendRequestsDialog />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            aria-label="Search"
-          >
-            <Search className="size-5" />
-          </Button>
+          <ConversationSearchDialog />
         </div>
       </div>
 
