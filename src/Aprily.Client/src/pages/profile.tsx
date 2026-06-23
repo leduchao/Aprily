@@ -39,6 +39,7 @@ import {
   Pencil,
   UserRound,
 } from "lucide-react"
+import { toast } from "sonner"
 
 export const ProfilePage = () => {
   const navigate = useNavigate()
@@ -49,13 +50,11 @@ export const ProfilePage = () => {
   const signOutMutation = useSignOutMutation()
   const updateProfileMutation = useUpdateProfileMutation()
   const uploadAvatarMutation = useUploadAvatarMutation()
-  const [isCopyNoticeVisible, setIsCopyNoticeVisible] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [fullName, setFullName] = useState(user?.fullName ?? "")
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
-  const copyNoticeTimeoutRef = useRef<number | null>(null)
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   const displayName = user?.fullName || user?.username || "Aprily user"
@@ -90,16 +89,7 @@ export const ProfilePage = () => {
     }
 
     await navigator.clipboard.writeText(user.id)
-    setIsCopyNoticeVisible(true)
-
-    if (copyNoticeTimeoutRef.current) {
-      window.clearTimeout(copyNoticeTimeoutRef.current)
-    }
-
-    copyNoticeTimeoutRef.current = window.setTimeout(() => {
-      setIsCopyNoticeVisible(false)
-      copyNoticeTimeoutRef.current = null
-    }, 1600)
+    toast.success("User id copied")
   }
 
   const handleEditDialogChange = (open: boolean) => {
@@ -161,15 +151,11 @@ export const ProfilePage = () => {
       }
 
       setIsEditDialogOpen(false)
-    } catch {
-      // Mutation state renders the API error in the dialog.
+      toast.success("Profile updated")
+    } catch (error) {
+      toast.error(getErrorMessage(error) ?? "Could not update profile")
     }
   }
-
-  const profileError =
-    fileError ??
-    getErrorMessage(updateProfileMutation.error) ??
-    getErrorMessage(uploadAvatarMutation.error)
 
   return (
     <main className="flex h-dvh w-dvw max-w-full flex-col overflow-hidden bg-background">
@@ -267,18 +253,6 @@ export const ProfilePage = () => {
         </Button>
       </section>
 
-      <div
-        aria-live="polite"
-        className={cn(
-          "pointer-events-none fixed right-5 bottom-5 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background shadow-xl transition-all",
-          isCopyNoticeVisible
-            ? "translate-y-0 opacity-100"
-            : "translate-y-2 opacity-0"
-        )}
-      >
-        User id copied
-      </div>
-
       <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogChange}>
         <DialogContent>
           <DialogHeader>
@@ -347,9 +321,9 @@ export const ProfilePage = () => {
               </p>
             </div>
 
-            {profileError && (
+            {fileError && (
               <p role="alert" className="text-sm text-destructive">
-                {profileError}
+                {fileError}
               </p>
             )}
           </div>
@@ -358,7 +332,8 @@ export const ProfilePage = () => {
             <Button
               type="button"
               variant="outline"
-              className="rounded-full"
+              // size={"lg"}
+              className="h-12 rounded-full text-base"
               disabled={isSaving}
               onClick={() => handleEditDialogChange(false)}
             >
@@ -366,7 +341,7 @@ export const ProfilePage = () => {
             </Button>
             <Button
               type="button"
-              className="rounded-full"
+              className="h-12 rounded-full text-base"
               disabled={isSaving || Boolean(fileError) || !hasProfileChanges}
               onClick={() => void handleSaveProfile()}
             >
@@ -429,8 +404,8 @@ const formatDate = (value?: string) => {
   }).format(new Date(value))
 }
 
-const getErrorMessage = (error: Error | null) => {
-  if (!error) {
+const getErrorMessage = (error: unknown) => {
+  if (!(error instanceof Error)) {
     return null
   }
 

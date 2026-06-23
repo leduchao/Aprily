@@ -1,15 +1,12 @@
 import { useState, type FormEvent, type ReactNode } from "react"
 import {
   ArrowLeft,
-  Check,
   ContactRound,
   Home,
   LoaderCircle,
   MessageSquare,
   Plus,
   UserRound,
-  Users,
-  X,
 } from "lucide-react"
 
 import {
@@ -26,18 +23,15 @@ import { Input } from "@/components/ui/input"
 import { ApiError } from "@/lib/api-client"
 import { useOpenDirectConversationMutation } from "@/lib/chat-api"
 import {
-  type FriendRequest,
   type FriendUser,
-  useAcceptFriendRequestMutation,
-  useDeclineFriendRequestMutation,
   useFriendsQuery,
-  useIncomingFriendRequestsQuery,
   useSendFriendRequestMutation,
 } from "@/lib/friends-api"
 import { cn } from "@/lib/utils"
 import { useNavigate } from "@tanstack/react-router"
+import { toast } from "sonner"
 
-type FooterMode = "menu" | "new-chat" | "new-contact" | "requests"
+type FooterMode = "menu" | "new-chat" | "new-contact"
 
 const actions = [
   {
@@ -51,12 +45,6 @@ const actions = [
     icon: ContactRound,
     title: "New Contact",
     description: "Add a contact by email or user id",
-  },
-  {
-    mode: "requests" as const,
-    icon: Users,
-    title: "Friend Requests",
-    description: "Review people who want to connect",
   },
 ]
 
@@ -134,9 +122,6 @@ export const Footer = () => {
           {mode === "new-contact" && (
             <NewContactPanel onBack={() => setMode("menu")} />
           )}
-          {mode === "requests" && (
-            <FriendRequestsPanel onBack={() => setMode("menu")} />
-          )}
         </div>
 
         <DialogClose asChild>
@@ -185,13 +170,6 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
   const [identifier, setIdentifier] = useState("")
   const sendFriendRequestMutation = useSendFriendRequestMutation()
 
-  const errorMessage =
-    sendFriendRequestMutation.error instanceof ApiError
-      ? sendFriendRequestMutation.error.message
-      : sendFriendRequestMutation.error
-        ? "Could not send friend request"
-        : null
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -203,7 +181,17 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
     sendFriendRequestMutation.mutate(
       value.includes("@") ? { email: value } : { recipientUserId: value },
       {
-        onSuccess: () => setIdentifier(""),
+        onSuccess: () => {
+          setIdentifier("")
+          toast.success("Friend request sent")
+        },
+        onError: (error) => {
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "Could not send friend request"
+          )
+        },
       }
     )
   }
@@ -225,18 +213,6 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
             autoComplete="off"
           />
         </div>
-
-        {sendFriendRequestMutation.isSuccess && (
-          <p className="rounded-2xl bg-primary/20 px-3 py-2 text-sm text-foreground">
-            Friend request sent.
-          </p>
-        )}
-
-        {errorMessage && (
-          <p className="rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {errorMessage}
-          </p>
-        )}
 
         <Button
           className="w-full"
@@ -275,26 +251,19 @@ const NewChatPanel = ({
           params: { threadId: response.conversationId },
         })
       },
+      onError: (error) => {
+        toast.error(
+          error instanceof ApiError ? error.message : "Could not open chat"
+        )
+      },
     })
   }
-
-  const errorMessage =
-    openConversationMutation.error instanceof ApiError
-      ? openConversationMutation.error.message
-      : openConversationMutation.error
-        ? "Could not open chat"
-        : null
 
   return (
     <div className="p-5">
       <PanelHeader title="New Chat" onBack={onBack} />
 
       <div className="mt-4 max-h-80 overflow-y-auto">
-        {errorMessage && (
-          <p className="mb-3 rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {errorMessage}
-          </p>
-        )}
         {friendsQuery.isLoading && <LoadingRow label="Loading friends" />}
         {friendsQuery.isError && (
           <EmptyState label="Could not load your friends." />
@@ -323,38 +292,6 @@ const NewChatPanel = ({
   )
 }
 
-const FriendRequestsPanel = ({ onBack }: { onBack: () => void }) => {
-  const requestsQuery = useIncomingFriendRequestsQuery()
-  const acceptMutation = useAcceptFriendRequestMutation()
-  const declineMutation = useDeclineFriendRequestMutation()
-
-  return (
-    <div className="p-5">
-      <PanelHeader title="Requests" onBack={onBack} />
-
-      <div className="mt-4 max-h-80 overflow-y-auto">
-        {requestsQuery.isLoading && <LoadingRow label="Loading requests" />}
-        {requestsQuery.isError && (
-          <EmptyState label="Could not load friend requests." />
-        )}
-        {requestsQuery.data?.length === 0 && (
-          <EmptyState label="No pending friend requests." />
-        )}
-        {requestsQuery.data?.map((request) => (
-          <FriendRequestRow
-            key={request.id}
-            request={request}
-            isAccepting={acceptMutation.isPending}
-            isDeclining={declineMutation.isPending}
-            onAccept={() => acceptMutation.mutate(request.id)}
-            onDecline={() => declineMutation.mutate(request.id)}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
 const PanelHeader = ({
   title,
   onBack,
@@ -369,46 +306,6 @@ const PanelHeader = ({
       </Button>
       <h2 className="text-xl font-semibold">{title}</h2>
     </div>
-  )
-}
-
-const FriendRequestRow = ({
-  request,
-  isAccepting,
-  isDeclining,
-  onAccept,
-  onDecline,
-}: {
-  request: FriendRequest
-  isAccepting: boolean
-  isDeclining: boolean
-  onAccept: () => void
-  onDecline: () => void
-}) => {
-  return (
-    <FriendRow
-      user={request.requester}
-      trailing={
-        <div className="flex gap-1">
-          <Button
-            variant="secondary"
-            size="icon-sm"
-            disabled={isAccepting || isDeclining}
-            onClick={onAccept}
-          >
-            <Check />
-          </Button>
-          <Button
-            variant="destructive"
-            size="icon-sm"
-            disabled={isAccepting || isDeclining}
-            onClick={onDecline}
-          >
-            <X />
-          </Button>
-        </div>
-      }
-    />
   )
 }
 

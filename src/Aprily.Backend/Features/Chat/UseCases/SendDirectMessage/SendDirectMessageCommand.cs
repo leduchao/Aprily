@@ -1,13 +1,10 @@
 using Aprily.Backend.Common.Constants;
 using Aprily.Backend.Common.Results;
 using Aprily.Backend.Database;
-using Aprily.Backend.Database.Connection;
 using Aprily.Backend.Entities;
 using Aprily.Backend.Features.Chat.Hubs;
 using Aprily.Backend.Features.Chat.Models;
 using Aprily.Backend.Features.Users.Services;
-
-using Dapper;
 
 using MediatR;
 
@@ -35,7 +32,6 @@ public sealed class SendDirectMessageCommand(
     public sealed class Handler(
         AppDbContext dbContext,
         ICurrentUser currentUser,
-        IDbConnectionFactory dbConnectionFactory,
         IHubContext<ChatHub> chatHub,
         IWebHostEnvironment environment)
         : IRequestHandler<SendDirectMessageCommand, Result<SendDirectMessageResponse>>
@@ -45,7 +41,6 @@ public sealed class SendDirectMessageCommand(
 
         private readonly AppDbContext _dbContext = dbContext;
         private readonly ICurrentUser _currentUser = currentUser;
-        private readonly IDbConnectionFactory _dbConnectionFactory = dbConnectionFactory;
         private readonly IHubContext<ChatHub> _chatHub = chatHub;
         private readonly IWebHostEnvironment _environment = environment;
 
@@ -364,21 +359,11 @@ public sealed class SendDirectMessageCommand(
 
         private async Task<bool> AreFriends(int userLowId, int userHighId, CancellationToken cancellationToken)
         {
-            using var conn = await _dbConnectionFactory.CreateConnection();
-
-            return await conn.ExecuteScalarAsync<bool>(
-                new CommandDefinition(
-                    """
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM friendships
-                        WHERE user_low_id = @UserLowId
-                        AND user_high_id = @UserHighId
-                        AND is_deleted = false
-                    );
-                    """,
-                    new { UserLowId = userLowId, UserHighId = userHighId },
-                    cancellationToken: cancellationToken));
+            return await _dbContext.Friendships.AnyAsync(
+                friendship => friendship.UserLowId == userLowId &&
+                    friendship.UserHighId == userHighId &&
+                    !friendship.IsDeleted,
+                cancellationToken);
         }
 
         private async Task<Conversation?> LoadDirectConversation(

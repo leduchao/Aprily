@@ -74,11 +74,11 @@ export const MessageList = ({
             />
           ))}
 
-          {messages.length > 0 && (
+          {/* {messages.length > 0 && (
             <p className="pr-2 text-right text-xs text-muted-foreground">
               Delivered
             </p>
-          )}
+          )} */}
         </div>
       </div>
     </section>

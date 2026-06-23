@@ -8,6 +8,7 @@ import {
   type MessageReactionsUpdated,
 } from "@/lib/chat-api"
 import { useAuthStore } from "@/lib/auth-store"
+import { friendQueryKeys } from "@/lib/friends-api"
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -84,6 +85,10 @@ export const ChatRealtimeProvider = ({ children }: PropsWithChildren) => {
       })
     })
 
+    connection.on("friendRequestsUpdated", () => {
+      void queryClient.invalidateQueries({ queryKey: friendQueryKeys.all })
+    })
+
     connection.on(
       "messageReactionsUpdated",
       (response: MessageReactionsUpdated) => {
@@ -119,6 +124,7 @@ export const ChatRealtimeProvider = ({ children }: PropsWithChildren) => {
     return () => {
       connection.off("messageReceived")
       connection.off("conversationUpdated")
+      connection.off("friendRequestsUpdated")
       connection.off("messageReactionsUpdated")
       void connection.stop()
     }

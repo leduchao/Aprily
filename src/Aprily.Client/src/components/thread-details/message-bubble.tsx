@@ -16,7 +16,7 @@ import type {
   MessageReactionType,
 } from "@/lib/chat-api"
 import { cn } from "@/lib/utils"
-import { Reply, SmilePlus } from "lucide-react"
+import { ArrowLeft, EllipsisVertical, Reply, SmilePlus } from "lucide-react"
 import { useState } from "react"
 
 type MessageBubbleProps = {
@@ -49,7 +49,8 @@ export const MessageBubble = ({
 }: MessageBubbleProps) => {
   const [previewAttachment, setPreviewAttachment] =
     useState<ChatMessageAttachment | null>(null)
-  const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false)
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false)
+  const [isShowingReactions, setIsShowingReactions] = useState(false)
 
   return (
     <Dialog
@@ -66,7 +67,7 @@ export const MessageBubble = ({
       >
         <div
           className={cn(
-            "group flex max-w-[78%] flex-col rounded-2xl transition-shadow duration-300",
+            "group relative flex max-w-[78%] flex-col rounded-2xl transition-shadow duration-300",
             isHighlighted &&
               "ring-2 ring-primary ring-offset-2 ring-offset-background",
             message.isMine ? "items-end" : "items-start"
@@ -156,21 +157,22 @@ export const MessageBubble = ({
             </div>
           )}
 
-          <div className="mt-1 flex items-center gap-1 opacity-70 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              className="rounded-full"
-              onClick={onReply}
-              aria-label="Reply to message"
-            >
-              <Reply className="size-3.5" />
-            </Button>
-
+          <div
+            className={cn(
+              "pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-70 group-hover:pointer-events-auto group-hover:opacity-70",
+              message.isMine ? "right-full pr-1" : "left-full pl-1",
+              isActionMenuOpen && "pointer-events-auto opacity-70"
+            )}
+          >
             <Popover
-              open={isReactionPickerOpen}
-              onOpenChange={setIsReactionPickerOpen}
+              open={isActionMenuOpen}
+              onOpenChange={(open) => {
+                setIsActionMenuOpen(open)
+
+                if (!open) {
+                  setIsShowingReactions(false)
+                }
+              }}
             >
               <PopoverTrigger asChild>
                 <Button
@@ -178,31 +180,72 @@ export const MessageBubble = ({
                   variant="ghost"
                   size="icon-xs"
                   className="rounded-full"
-                  aria-label="React to message"
+                  aria-label="Message actions"
                 >
-                  <SmilePlus className="size-3.5" />
+                  <EllipsisVertical className="size-4" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent
                 side="top"
                 align={message.isMine ? "end" : "start"}
-                className="w-auto flex-row gap-1 rounded-full p-1.5"
+                className={cn(
+                  "gap-1 p-1.5",
+                  isShowingReactions ? "w-auto rounded-full" : "w-40 rounded-xl"
+                )}
               >
-                {reactionOptions.map((option) => (
-                  <button
-                    key={option.type}
-                    type="button"
-                    className="flex size-9 items-center justify-center rounded-full text-xl transition-transform hover:scale-125 hover:bg-muted"
-                    onClick={() => {
-                      onReact(option.type)
-                      setIsReactionPickerOpen(false)
-                    }}
-                    aria-label={option.label}
-                    title={option.label}
-                  >
-                    {option.emoji}
-                  </button>
-                ))}
+                {isShowingReactions ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 rounded-full"
+                      onClick={() => setIsShowingReactions(false)}
+                      aria-label="Back to message actions"
+                    >
+                      <ArrowLeft className="size-4" />
+                    </Button>
+
+                    {reactionOptions.map((option) => (
+                      <button
+                        key={option.type}
+                        type="button"
+                        className="flex size-9 items-center justify-center rounded-full text-xl transition-transform hover:scale-125 hover:bg-muted"
+                        onClick={() => {
+                          onReact(option.type)
+                          setIsActionMenuOpen(false)
+                          setIsShowingReactions(false)
+                        }}
+                        aria-label={option.label}
+                        title={option.label}
+                      >
+                        {option.emoji}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
+                      onClick={() => {
+                        setIsActionMenuOpen(false)
+                        onReply()
+                      }}
+                    >
+                      <Reply className="size-4" />
+                      <span>Reply</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
+                      onClick={() => setIsShowingReactions(true)}
+                    >
+                      <SmilePlus className="size-4" />
+                      <span>React</span>
+                    </button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           </div>

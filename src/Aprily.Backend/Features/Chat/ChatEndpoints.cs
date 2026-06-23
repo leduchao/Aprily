@@ -5,6 +5,7 @@ using Aprily.Backend.Features.Chat.UseCases.MarkConversationAsRead;
 using Aprily.Backend.Features.Chat.UseCases.OpenDirectConversation;
 using Aprily.Backend.Features.Chat.UseCases.SendDirectMessage;
 using Aprily.Backend.Features.Chat.UseCases.SetMessageReaction;
+using Aprily.Backend.Features.Chat.UseCases.SearchConversations;
 
 namespace Aprily.Backend.Features.Chat;
 
@@ -18,6 +19,7 @@ public static class ChatEndpoints
             .RequireAuthorization();
 
         chat.MapListConversationsEndpoint();
+        chat.MapSearchConversationsEndpoint();
         chat.MapGetConversationMessagesEndpoint();
         chat.MapOpenDirectConversationEndpoint();
         chat.MapSendDirectMessageEndpoint();

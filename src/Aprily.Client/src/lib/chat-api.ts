@@ -110,12 +110,22 @@ export type MarkConversationAsReadResponse = {
 export const chatQueryKeys = {
   all: ["chat"] as const,
   conversations: () => [...chatQueryKeys.all, "conversations"] as const,
+  conversationSearch: (query: string) =>
+    [...chatQueryKeys.all, "conversations", "search", query] as const,
   messages: (conversationId: string) =>
     [...chatQueryKeys.all, "messages", conversationId] as const,
 }
 
 export const getConversations = async () => {
   return apiClient.get<Conversation[]>("/chat/conversations")
+}
+
+export const searchConversations = async (query: string) => {
+  const searchParams = new URLSearchParams({ query })
+
+  return apiClient.get<Conversation[]>(
+    `/chat/conversations/search?${searchParams}`
+  )
 }
 
 export const getConversationMessages = async (conversationId: string) => {
@@ -182,6 +192,14 @@ export const useConversationsQuery = () => {
   return useQuery({
     queryKey: chatQueryKeys.conversations(),
     queryFn: getConversations,
+  })
+}
+
+export const useSearchConversationsQuery = (query: string) => {
+  return useQuery({
+    queryKey: chatQueryKeys.conversationSearch(query),
+    queryFn: () => searchConversations(query),
+    enabled: query.length > 0,
   })
 }
 

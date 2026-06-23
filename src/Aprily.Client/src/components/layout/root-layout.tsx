@@ -2,6 +2,7 @@ import { Outlet } from "@tanstack/react-router"
 
 import { MobileOnly } from "@/components/layout/mobile-only"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 
 export const RootLayout = () => {
   return (
@@ -9,6 +10,7 @@ export const RootLayout = () => {
       <MobileOnly>
         <Outlet />
       </MobileOnly>
+      <Toaster position="top-center" richColors />
 
       {/* {import.meta.env.DEV && (
         <>

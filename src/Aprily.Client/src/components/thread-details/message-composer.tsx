@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { toast } from "sonner"
 
 type MessageComposerProps = {
   onSend: (message: string, images: File[]) => Promise<void>
@@ -47,8 +48,6 @@ export const MessageComposer = ({
   >([])
   const [previewAttachment, setPreviewAttachment] =
     useState<SelectedAttachment | null>(null)
-  const [attachmentError, setAttachmentError] = useState<string | null>(null)
-  const [sendError, setSendError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messageInputRef = useRef<HTMLInputElement>(null)
   const selectedAttachmentsRef = useRef<SelectedAttachment[]>([])
@@ -80,21 +79,20 @@ export const MessageComposer = ({
     event.target.value = ""
 
     if (selectedAttachments.length + files.length > maxImageCount) {
-      setAttachmentError(`You can send up to ${maxImageCount} images at once`)
+      toast.error(`You can send up to ${maxImageCount} images at once`)
       return
     }
 
     if (files.some((file) => !allowedImageTypes.includes(file.type))) {
-      setAttachmentError("Choose JPG, PNG, WEBP, or GIF images")
+      toast.error("Choose JPG, PNG, WEBP, or GIF images")
       return
     }
 
     if (files.some((file) => file.size === 0 || file.size > maxImageSize)) {
-      setAttachmentError("Each image must be non-empty and smaller than 10 MB")
+      toast.error("Each image must be non-empty and smaller than 10 MB")
       return
     }
 
-    setAttachmentError(null)
     const attachments = files.map((file, index) => ({
       id: `${file.name}-${file.lastModified}-${file.size}-${Date.now()}-${index}`,
       file,
@@ -135,7 +133,6 @@ export const MessageComposer = ({
     }
 
     try {
-      setSendError(null)
       await onSend(
         message.trim(),
         selectedAttachments.map((attachment) => attachment.file)
@@ -146,10 +143,9 @@ export const MessageComposer = ({
       })
       setMessage("")
       setSelectedAttachments([])
-      setAttachmentError(null)
     } catch {
       // Keep the draft so the user can retry the failed send.
-      setSendError("Could not send this message. Please try again.")
+      toast.error("Could not send this message. Please try again.")
     }
   }
 
@@ -234,12 +230,6 @@ export const MessageComposer = ({
               )
             })}
           </div>
-        )}
-
-        {(attachmentError || sendError) && (
-          <p role="alert" className="px-4 pt-2 text-xs text-destructive">
-            {attachmentError || sendError}
-          </p>
         )}
 
         <form className="flex items-center px-4 py-3" onSubmit={handleSubmit}>

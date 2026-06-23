@@ -7,6 +7,7 @@ import { Link, useNavigate } from "@tanstack/react-router"
 import { Eye, EyeOff, LoaderCircle, UserPlus } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import { z } from "zod"
 
 const signUpSchema = z
@@ -59,16 +60,16 @@ export const SignUpPage = () => {
           setSession(session.accessToken, session.user)
           void navigate({ to: "/" })
         },
+        onError: (error) => {
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "Could not create your account"
+          )
+        },
       }
     )
   })
-
-  const serverError =
-    signUpMutation.error instanceof ApiError
-      ? signUpMutation.error.message
-      : signUpMutation.error
-        ? "Could not create your account"
-        : null
 
   return (
     <main className="flex h-dvh w-dvw max-w-full flex-col overflow-hidden bg-background">
@@ -151,6 +152,7 @@ export const SignUpPage = () => {
                 {...register("password")}
               />
               <Button
+                tabIndex={-1}
                 type="button"
                 variant="ghost"
                 size="icon"
@@ -182,6 +184,7 @@ export const SignUpPage = () => {
                 {...register("confirmPassword")}
               />
               <Button
+                tabIndex={-1}
                 type="button"
                 variant="ghost"
                 size="icon"
@@ -202,12 +205,6 @@ export const SignUpPage = () => {
               </p>
             )}
           </div>
-
-          {serverError && (
-            <p className="rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {serverError}
-            </p>
-          )}
 
           <Button
             className="mt-2 h-12 w-full rounded-full text-base"

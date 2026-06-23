@@ -12,6 +12,7 @@ namespace Aprily.Backend.Features.Chat.Hubs;
 public sealed class ChatHub(IDbConnectionFactory dbConnectionFactory) : Hub
 {
     public const string HubPath = "/hubs/chat";
+    public const string FriendRequestsUpdatedEvent = "friendRequestsUpdated";
 
     private readonly IDbConnectionFactory _dbConnectionFactory = dbConnectionFactory;
 
