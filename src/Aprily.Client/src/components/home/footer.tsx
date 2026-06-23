@@ -7,6 +7,8 @@ import {
   MessageSquare,
   Plus,
   UserRound,
+  UsersRound,
+  Check,
 } from "lucide-react"
 
 import {
@@ -21,7 +23,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ApiError } from "@/lib/api-client"
-import { useOpenDirectConversationMutation } from "@/lib/chat-api"
+import {
+  useCreateGroupConversationMutation,
+  useOpenDirectConversationMutation,
+} from "@/lib/chat-api"
 import {
   type FriendUser,
   useFriendsQuery,
@@ -31,9 +36,15 @@ import { cn } from "@/lib/utils"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
-type FooterMode = "menu" | "new-chat" | "new-contact"
+type FooterMode = "menu" | "new-chat" | "new-group" | "new-contact"
 
 const actions = [
+  {
+    mode: "new-group" as const,
+    icon: UsersRound,
+    title: "New Group",
+    description: "Create a group with your friends",
+  },
   {
     mode: "new-chat" as const,
     icon: MessageSquare,
@@ -121,6 +132,12 @@ export const Footer = () => {
           )}
           {mode === "new-contact" && (
             <NewContactPanel onBack={() => setMode("menu")} />
+          )}
+          {mode === "new-group" && (
+            <NewGroupPanel
+              onBack={() => setMode("menu")}
+              onClose={() => handleOpenChange(false)}
+            />
           )}
         </div>
 
@@ -228,6 +245,111 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
         </Button>
       </form>
     </div>
+  )
+}
+
+const NewGroupPanel = ({
+  onBack,
+  onClose,
+}: {
+  onBack: () => void
+  onClose: () => void
+}) => {
+  const navigate = useNavigate()
+  const friendsQuery = useFriendsQuery()
+  const createGroupMutation = useCreateGroupConversationMutation()
+  const [name, setName] = useState("")
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const toggleMember = (userId: string) => {
+    setSelectedIds((current) =>
+      current.includes(userId)
+        ? current.filter((id) => id !== userId)
+        : [...current, userId]
+    )
+  }
+
+  const handleCreate = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!name.trim() || selectedIds.length < 2) return
+
+    createGroupMutation.mutate(
+      { name: name.trim(), memberUserIds: selectedIds },
+      {
+        onSuccess: (response) => {
+          onClose()
+          toast.success("Group created")
+          void navigate({
+            to: "/threads/$threadId",
+            params: { threadId: response.conversationId },
+          })
+        },
+        onError: (error) =>
+          toast.error(
+            error instanceof ApiError ? error.message : "Could not create group"
+          ),
+      }
+    )
+  }
+
+  return (
+    <form className="p-5" onSubmit={handleCreate}>
+      <PanelHeader title="New Group" onBack={onBack} />
+      <Input
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        maxLength={100}
+        placeholder="Group name"
+        className="mt-4"
+      />
+      <p className="mt-4 text-sm font-medium">
+        Select friends ({selectedIds.length})
+      </p>
+      <div className="mt-2 max-h-56 overflow-y-auto">
+        {friendsQuery.isLoading && <LoadingRow label="Loading friends" />}
+        {friendsQuery.data?.map((friend) => {
+          const selected = selectedIds.includes(friend.user.id)
+          return (
+            <button
+              key={friend.id}
+              type="button"
+              className="flex w-full items-center gap-3 border-t border-border/60 py-3 text-left first:border-t-0"
+              onClick={() => toggleMember(friend.user.id)}
+            >
+              <Avatar className="size-10">
+                <AvatarImage src={friend.user.avatarUrl ?? undefined} />
+                <AvatarFallback>
+                  {getFallback(friend.user.fullName || friend.user.username)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 truncate font-medium">
+                {friend.user.fullName || friend.user.username}
+              </span>
+              <span
+                className={cn(
+                  "flex size-6 items-center justify-center rounded-full border",
+                  selected && "border-primary bg-primary text-gray-900"
+                )}
+              >
+                {selected && <Check className="size-4" />}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <Button
+        className="mt-4 w-full"
+        size="lg"
+        disabled={
+          !name.trim() || selectedIds.length < 2 || createGroupMutation.isPending
+        }
+      >
+        {createGroupMutation.isPending && (
+          <LoaderCircle className="animate-spin" />
+        )}
+        Create group
+      </Button>
+    </form>
   )
 }
 

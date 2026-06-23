@@ -25,6 +25,8 @@ public partial class Conversation
 
     public virtual DirectConversation? DirectConversation { get; set; }
 
+    public virtual GroupConversation? GroupConversation { get; set; }
+
     public virtual Message? LastMessage { get; set; }
 
     public virtual ICollection<Message> Messages { get; set; } = new List<Message>();

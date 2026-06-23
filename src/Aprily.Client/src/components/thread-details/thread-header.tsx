@@ -37,6 +37,7 @@ const threadActions = [
 export type ThreadHeaderInfo = {
   avatarUrl: string | null
   name: string
+  subtitle?: string
   isOnline?: boolean
 }
 
@@ -75,7 +76,8 @@ export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
       <div className="min-w-0 flex-1">
         <p className="truncate leading-tight font-semibold">{thread.name}</p>
         <p className="text-xs text-muted-foreground">
-          {thread.isOnline ? "Online" : "Online 5 minutes ago"}
+          {thread.subtitle ||
+            (thread.isOnline ? "Online" : "Online 5 minutes ago")}
         </p>
       </div>
 

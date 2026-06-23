@@ -8,17 +8,18 @@ namespace Aprily.Backend.Features.Chat.UseCases.SendDirectMessage;
 
 public static class SendDirectMessageEndpoint
 {
-    private record Request(Guid RecipientUserId, string Content, Guid? ReplyToMessageId);
+    private record Request(string Content, Guid? ReplyToMessageId);
 
     public static void MapSendDirectMessageEndpoint(this RouteGroupBuilder group)
     {
-        group.MapPost("/direct-messages", async (
+        group.MapPost("/conversations/{conversationId:guid}/messages", async (
+            Guid conversationId,
             Request request,
             ISender sender,
             CancellationToken cancellationToken) =>
         {
             var command = new SendDirectMessageCommand(
-                request.RecipientUserId,
+                conversationId,
                 request.Content,
                 replyToMessageId: request.ReplyToMessageId);
             var result = await sender.Send(command, cancellationToken);
@@ -26,22 +27,20 @@ public static class SendDirectMessageEndpoint
             return result.ToHttpResult();
         });
 
-        group.MapPost("/direct-image-messages", async (
+        group.MapPost("/conversations/{conversationId:guid}/image-messages", async (
+            Guid conversationId,
             HttpRequest request,
             ISender sender,
             CancellationToken cancellationToken) =>
         {
             var form = await request.ReadFormAsync(cancellationToken);
-            var recipientUserId = Guid.TryParse(form["recipientUserId"], out var parsedRecipientUserId)
-                ? parsedRecipientUserId
-                : Guid.Empty;
             var content = form["content"].ToString();
             var images = form.Files.GetFiles("images");
             Guid? replyToMessageId = Guid.TryParse(form["replyToMessageId"], out var parsedReplyToMessageId)
                 ? parsedReplyToMessageId
                 : null;
 
-            var command = new SendDirectMessageCommand(recipientUserId, content, images, replyToMessageId);
+            var command = new SendDirectMessageCommand(conversationId, content, images, replyToMessageId);
             var result = await sender.Send(command, cancellationToken);
 
             return result.ToHttpResult();

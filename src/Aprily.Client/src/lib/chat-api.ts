@@ -18,8 +18,11 @@ export type LastMessage = {
 
 export type Conversation = {
   id: string
-  type: "direct"
-  otherUser: ChatUser
+  type: "direct" | "group"
+  name: string
+  avatarUrl: string | null
+  otherUser: ChatUser | null
+  memberCount: number
   lastMessage: LastMessage | null
   lastMessageAt: string | null
   unreadCount: number
@@ -59,6 +62,7 @@ export type MessageReactionSummary = {
   type: MessageReactionType
   count: number
   reactedByMe: boolean
+  reactedBy: string[]
 }
 
 export type MessageReactionsUpdated = {
@@ -81,7 +85,7 @@ export type ChatMessageAttachment = {
 }
 
 export type SendDirectMessageInput = {
-  recipientUserId: string
+  conversationId: string
   content: string
   images?: File[]
   replyToMessageId?: string
@@ -94,6 +98,11 @@ export type SendDirectMessageResponse = {
 
 export type OpenDirectConversationResponse = {
   conversationId: string
+}
+
+export type CreateGroupConversationInput = {
+  name: string
+  memberUserIds: string[]
 }
 
 export type MarkConversationAsReadInput = {
@@ -141,10 +150,18 @@ export const openDirectConversation = async (recipientUserId: string) => {
   >("/chat/direct-conversations", { recipientUserId })
 }
 
+export const createGroupConversation = async (
+  input: CreateGroupConversationInput
+) => {
+  return apiClient.post<
+    OpenDirectConversationResponse,
+    CreateGroupConversationInput
+  >("/chat/group-conversations", input)
+}
+
 export const sendDirectMessage = async (input: SendDirectMessageInput) => {
   if (input.images?.length) {
     const formData = new FormData()
-    formData.append("recipientUserId", input.recipientUserId)
     formData.append("content", input.content)
     if (input.replyToMessageId) {
       formData.append("replyToMessageId", input.replyToMessageId)
@@ -152,15 +169,15 @@ export const sendDirectMessage = async (input: SendDirectMessageInput) => {
     input.images.forEach((image) => formData.append("images", image))
 
     return apiClient.post<SendDirectMessageResponse, FormData>(
-      "/chat/direct-image-messages",
+      `/chat/conversations/${input.conversationId}/image-messages`,
       formData
     )
   }
 
   return apiClient.post<SendDirectMessageResponse, SendDirectMessageInput>(
-    "/chat/direct-messages",
+    `/chat/conversations/${input.conversationId}/messages`,
     {
-      recipientUserId: input.recipientUserId,
+      conversationId: input.conversationId,
       content: input.content,
       replyToMessageId: input.replyToMessageId,
     }
@@ -215,6 +232,18 @@ export const useOpenDirectConversationMutation = () => {
 
   return useMutation({
     mutationFn: openDirectConversation,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: chatQueryKeys.conversations(),
+      })
+    },
+  })
+}
+
+export const useCreateGroupConversationMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createGroupConversation,
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: chatQueryKeys.conversations(),

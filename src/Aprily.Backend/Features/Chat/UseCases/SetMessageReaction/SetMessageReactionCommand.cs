@@ -86,22 +86,24 @@ public sealed class SetMessageReactionCommandHandler(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var reactionCounts = await dbContext.MessageReactions
+        var reactionUsers = await dbContext.MessageReactions
             .Where(reaction => reaction.MessageId == message.Id && !reaction.IsDeleted)
-            .GroupBy(reaction => reaction.Type)
-            .Select(group => new
+            .Select(reaction => new
             {
-                Type = group.Key,
-                Count = group.Count()
+                reaction.Type,
+                UserId = reaction.User.EntityId,
+                Name = reaction.User.FullName ?? reaction.User.Username
             })
-            .OrderBy(reaction => reaction.Type)
             .ToListAsync(cancellationToken);
 
-        var reactions = reactionCounts
-            .Select(reaction => new MessageReactionSummaryResponse(
-                reaction.Type,
-                reaction.Count,
-                reaction.Type == request.Type))
+        var reactions = reactionUsers
+            .GroupBy(reaction => reaction.Type)
+            .OrderBy(group => group.Key)
+            .Select(group => new MessageReactionSummaryResponse(
+                group.Key,
+                group.Count(),
+                group.Any(reaction => reaction.UserId == user.EntityId),
+                group.Select(reaction => reaction.Name).Order().ToList()))
             .ToList();
 
         var response = new MessageReactionsUpdatedResponse(

@@ -11,6 +11,8 @@ public partial class Message
 
     public int SenderUserId { get; set; }
 
+    public int? ReplyToMessageId { get; set; }
+
     public string? Content { get; set; }
 
     public DateTime SentAt { get; set; }
@@ -22,8 +24,6 @@ public partial class Message
     public DateTime UpdatedAt { get; set; }
 
     public bool IsDeleted { get; set; }
-
-    public int? ReplyToMessageId { get; set; }
 
     public virtual Conversation Conversation { get; set; } = null!;
 

@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 namespace Aprily.Backend.Entities;
 
-public partial class ConversationMember
+public partial class GroupConversation
 {
     public int Id { get; set; }
 
     public int ConversationId { get; set; }
 
-    public int UserId { get; set; }
+    public string Name { get; set; } = null!;
 
-    public int? LastReadMessageId { get; set; }
+    public string? AvatarUrl { get; set; }
 
-    public DateTime? LastReadAt { get; set; }
+    public int CreatedByUserId { get; set; }
 
     public Guid EntityId { get; set; }
 
@@ -23,11 +23,7 @@ public partial class ConversationMember
 
     public bool IsDeleted { get; set; }
 
-    public string Role { get; set; } = null!;
-
     public virtual Conversation Conversation { get; set; } = null!;
 
-    public virtual Message? LastReadMessage { get; set; }
-
-    public virtual User User { get; set; } = null!;
+    public virtual User CreatedByUser { get; set; } = null!;
 }

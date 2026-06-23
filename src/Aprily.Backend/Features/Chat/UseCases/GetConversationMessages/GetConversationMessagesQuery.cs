@@ -65,12 +65,12 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
                     m.entity_id AS Id,
                     c.entity_id AS ConversationId,
                     sender.entity_id AS SenderUserId,
-                    sender.username AS SenderUsername,
+                    COALESCE(sender.full_name, sender.username) AS SenderUsername,
                     sender.avatar_url AS SenderAvatarUrl,
                     m.content AS Content,
                     reply.entity_id AS ReplyToId,
                     reply_sender.entity_id AS ReplyToSenderUserId,
-                    reply_sender.username AS ReplyToSenderUsername,
+                    COALESCE(reply_sender.full_name, reply_sender.username) AS ReplyToSenderUsername,
                     reply.content AS ReplyToContent,
                     EXISTS (
                         SELECT 1
@@ -163,7 +163,11 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
                             mr.message_id AS MessageId,
                             mr.type AS Type,
                             COUNT(*)::int AS Count,
-                            BOOL_OR(reaction_user.entity_id = @CurrentUserId) AS ReactedByMe
+                            BOOL_OR(reaction_user.entity_id = @CurrentUserId) AS ReactedByMe,
+                            ARRAY_AGG(
+                                COALESCE(reaction_user.full_name, reaction_user.username)
+                                ORDER BY COALESCE(reaction_user.full_name, reaction_user.username)
+                            ) AS ReactedBy
                         FROM message_reactions mr
                         INNER JOIN users reaction_user
                             ON reaction_user.id = mr.user_id
@@ -188,7 +192,8 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
                         .Select(reaction => new MessageReactionSummaryResponse(
                             reaction.Type,
                             reaction.Count,
-                            reaction.ReactedByMe))
+                            reaction.ReactedByMe,
+                            reaction.ReactedBy))
                         .ToList());
 
             var messages = messageRows
@@ -256,6 +261,7 @@ public sealed class GetConversationMessagesQuery(Guid conversationId, int take, 
             public string Type { get; init; } = null!;
             public int Count { get; init; }
             public bool ReactedByMe { get; init; }
+            public string[] ReactedBy { get; init; } = [];
         }
     }
 }
