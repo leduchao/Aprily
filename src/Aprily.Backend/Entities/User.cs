@@ -43,6 +43,8 @@ public partial class User
 
     public virtual ICollection<Friendship> FriendshipUserLows { get; set; } = new List<Friendship>();
 
+    public virtual ICollection<GroupConversation> GroupConversations { get; set; } = new List<GroupConversation>();
+
     public virtual ICollection<MessageReaction> MessageReactions { get; set; } = new List<MessageReaction>();
 
     public virtual ICollection<Message> Messages { get; set; } = new List<Message>();

@@ -45,11 +45,8 @@ export const ThreadList = () => {
           >
             <ThreadItem
               id={conversation.id}
-              avatar={conversation.otherUser.avatarUrl ?? ""}
-              name={
-                conversation.otherUser.fullName ||
-                conversation.otherUser.username
-              }
+              avatar={conversation.avatarUrl ?? ""}
+              name={conversation.name}
               message={formatLastMessage(conversation, currentUserId)}
               time={formatConversationTime(conversation.lastMessageAt)}
               unreadCount={conversation.unreadCount}

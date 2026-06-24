@@ -6,12 +6,14 @@ type MessageListProps = {
   messages: ChatMessage[]
   onReply: (message: ChatMessage) => void
   onReact: (message: ChatMessage, type: MessageReactionType) => void
+  isGroup?: boolean
 }
 
 export const MessageList = ({
   messages,
   onReply,
   onReact,
+  isGroup = false,
 }: MessageListProps) => {
   const messageListRef = useRef<HTMLElement>(null)
   const highlightTimeoutRef = useRef<number | null>(null)
@@ -63,16 +65,37 @@ export const MessageList = ({
         <p className="mb-4 text-center text-sm text-muted-foreground">Today</p>
 
         <div className="space-y-3">
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              onReply={() => onReply(message)}
-              onReact={(type) => onReact(message, type)}
-              onNavigateToMessage={navigateToMessage}
-              isHighlighted={highlightedMessageId === message.id}
-            />
-          ))}
+          {messages.map((message, index) => {
+            const previousMessage = messages[index - 1]
+            const nextMessage = messages[index + 1]
+            const showSenderIdentity =
+              !message.isMine &&
+              (!previousMessage ||
+                previousMessage.senderUserId !== message.senderUserId ||
+                hasFiveMinuteGap(previousMessage.sentAt, message.sentAt))
+            const showTimestamp =
+              !nextMessage ||
+              nextMessage.senderUserId !== message.senderUserId ||
+              !isSameMinute(message.sentAt, nextMessage.sentAt)
+
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                showSenderAvatar={showSenderIdentity}
+                reserveSenderAvatarSpace={
+                  !message.isMine && !showSenderIdentity
+                }
+                showSenderName={isGroup && showSenderIdentity}
+                showReactionDetails={isGroup}
+                showTimestamp={showTimestamp}
+                onReply={() => onReply(message)}
+                onReact={(type) => onReact(message, type)}
+                onNavigateToMessage={navigateToMessage}
+                isHighlighted={highlightedMessageId === message.id}
+              />
+            )
+          })}
 
           {/* {messages.length > 0 && (
             <p className="pr-2 text-right text-xs text-muted-foreground">
@@ -84,3 +107,10 @@ export const MessageList = ({
     </section>
   )
 }
+
+const isSameMinute = (first: string, second: string) =>
+  Math.floor(new Date(first).getTime() / 60_000) ===
+  Math.floor(new Date(second).getTime() / 60_000)
+
+const hasFiveMinuteGap = (first: string, second: string) =>
+  new Date(second).getTime() - new Date(first).getTime() >= 5 * 60_000

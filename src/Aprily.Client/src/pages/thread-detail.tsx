@@ -56,7 +56,7 @@ export const ThreadDetailPage = () => {
     }
 
     await sendMessageMutation.mutateAsync({
-      recipientUserId: conversation.otherUser.id,
+      conversationId: conversation.id,
       content,
       images,
       replyToMessageId: replyingTo?.id,
@@ -79,11 +79,12 @@ export const ThreadDetailPage = () => {
     <main className="flex h-dvh w-dvw max-w-full flex-col overflow-hidden bg-background">
       <ThreadHeader
         thread={{
-          avatarUrl: conversation?.otherUser.avatarUrl ?? null,
-          name:
-            conversation?.otherUser.fullName ||
-            conversation?.otherUser.username ||
-            "Chat",
+          avatarUrl: conversation?.avatarUrl ?? null,
+          name: conversation?.name || "Chat",
+          subtitle:
+            conversation?.type === "group"
+              ? `${conversation.memberCount} members`
+              : undefined,
         }}
       />
 
@@ -101,6 +102,7 @@ export const ThreadDetailPage = () => {
           messages={messages}
           onReply={setReplyingTo}
           onReact={handleReact}
+          isGroup={conversation?.type === "group"}
         />
       )}
 

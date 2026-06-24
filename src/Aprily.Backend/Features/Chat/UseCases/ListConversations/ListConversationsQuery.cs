@@ -38,6 +38,8 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                 SELECT
                     c.entity_id AS ConversationId,
                     c.type AS Type,
+                    COALESCE(gc.name, ou.full_name, ou.username) AS Name,
+                    COALESCE(gc.avatar_url, ou.avatar_url) AS AvatarUrl,
                     c.last_message_at AS LastMessageAt,
                     ou.entity_id AS OtherUserId,
                     ou.username AS OtherUsername,
@@ -53,7 +55,13 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                         AND lma.is_deleted = false
                     ) AS LastMessageHasAttachments,
                     lm.sent_at AS LastMessageSentAt,
-                    COALESCE(unread.unread_count, 0) AS UnreadCount
+                    COALESCE(unread.unread_count, 0) AS UnreadCount,
+                    (
+                        SELECT COUNT(*)::int
+                        FROM conversation_members mc
+                        WHERE mc.conversation_id = c.id
+                        AND mc.is_deleted = false
+                    ) AS MemberCount
                 FROM me cu
                 INNER JOIN conversation_members cm
                     ON cm.user_id = cu.id
@@ -61,13 +69,21 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                 INNER JOIN conversations c
                     ON c.id = cm.conversation_id
                     AND c.is_deleted = false
-                INNER JOIN conversation_members ocm
-                    ON ocm.conversation_id = c.id
+                LEFT JOIN group_conversations gc
+                    ON gc.conversation_id = c.id
+                    AND gc.is_deleted = false
+                LEFT JOIN LATERAL (
+                    SELECT other_user.*
+                    FROM conversation_members ocm
+                    INNER JOIN users other_user
+                        ON other_user.id = ocm.user_id
+                        AND other_user.is_deleted = false
+                    WHERE ocm.conversation_id = c.id
                     AND ocm.user_id <> cu.id
                     AND ocm.is_deleted = false
-                INNER JOIN users ou
-                    ON ou.id = ocm.user_id
-                    AND ou.is_deleted = false
+                    AND c.type = 'direct'
+                    LIMIT 1
+                ) ou ON true
                 LEFT JOIN messages lm
                     ON lm.id = c.last_message_id
                     AND lm.is_deleted = false
@@ -104,11 +120,16 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
                 .Select(row => new ConversationResponse(
                     row.ConversationId,
                     row.Type,
-                    new ChatUserResponse(
-                        row.OtherUserId,
-                        row.OtherUsername,
-                        row.OtherFullName,
-                        row.OtherAvatarUrl),
+                    row.Name,
+                    row.AvatarUrl,
+                    row.OtherUserId is null
+                        ? null
+                        : new ChatUserResponse(
+                            row.OtherUserId.Value,
+                            row.OtherUsername!,
+                            row.OtherFullName,
+                            row.OtherAvatarUrl),
+                    row.MemberCount,
                     row.LastMessageId is null || row.LastMessageSenderUserId is null || row.LastMessageSentAt is null
                         ? null
                         : new LastMessageResponse(
@@ -128,9 +149,11 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
         {
             public Guid ConversationId { get; init; }
             public string Type { get; init; } = null!;
+            public string Name { get; init; } = null!;
+            public string? AvatarUrl { get; init; }
             public DateTime? LastMessageAt { get; init; }
-            public Guid OtherUserId { get; init; }
-            public string OtherUsername { get; init; } = null!;
+            public Guid? OtherUserId { get; init; }
+            public string? OtherUsername { get; init; }
             public string? OtherFullName { get; init; }
             public string? OtherAvatarUrl { get; init; }
             public Guid? LastMessageId { get; init; }
@@ -139,6 +162,7 @@ public sealed class ListConversationsQuery(int take, DateTime? before)
             public bool LastMessageHasAttachments { get; init; }
             public DateTime? LastMessageSentAt { get; init; }
             public int UnreadCount { get; init; }
+            public int MemberCount { get; init; }
         }
     }
 }

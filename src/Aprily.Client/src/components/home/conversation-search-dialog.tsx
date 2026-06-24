@@ -115,9 +115,7 @@ export const ConversationSearchDialog = () => {
 
           {!isWaitingForDebounce &&
             searchQuery.data?.map((conversation) => {
-              const name =
-                conversation.otherUser.fullName ||
-                conversation.otherUser.username
+              const name = conversation.name
 
               return (
                 <button
@@ -128,7 +126,7 @@ export const ConversationSearchDialog = () => {
                 >
                   <Avatar className="size-11">
                     <AvatarImage
-                      src={conversation.otherUser.avatarUrl ?? undefined}
+                      src={conversation.avatarUrl ?? undefined}
                       alt={name}
                     />
                     <AvatarFallback>{getFallback(name)}</AvatarFallback>
@@ -137,7 +135,9 @@ export const ConversationSearchDialog = () => {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{name}</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      @{conversation.otherUser.username}
+                      {conversation.type === "group"
+                        ? `${conversation.memberCount} members`
+                        : `@${conversation.otherUser?.username}`}
                     </p>
                   </div>
                 </button>

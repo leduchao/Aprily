@@ -6,7 +6,7 @@ public sealed class SendDirectMessageValidator : AbstractValidator<SendDirectMes
 {
     public SendDirectMessageValidator()
     {
-        RuleFor(x => x.RecipientUserId).NotEmpty();
+        RuleFor(x => x.ConversationId).NotEmpty();
 
         RuleFor(x => x)
             .Must(command =>

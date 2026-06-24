@@ -22,6 +22,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Friendship> Friendships { get; set; }
 
+    public virtual DbSet<GroupConversation> GroupConversations { get; set; }
+
     public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<MessageAttachment> MessageAttachments { get; set; }
@@ -93,6 +95,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
             entity.Property(e => e.LastReadAt).HasColumnName("last_read_at");
             entity.Property(e => e.LastReadMessageId).HasColumnName("last_read_message_id");
+            entity.Property(e => e.Role)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'member'::character varying")
+                .HasColumnName("role");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
@@ -247,6 +253,50 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.UserLow).WithMany(p => p.FriendshipUserLows)
                 .HasForeignKey(d => d.UserLowId)
                 .HasConstraintName("fk_friendships_users_user_low_id");
+        });
+
+        modelBuilder.Entity<GroupConversation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("group_conversations_pkey");
+
+            entity.ToTable("group_conversations");
+
+            entity.HasIndex(e => e.CreatedByUserId, "ix_group_conversations_created_by_user_id");
+
+            entity.HasIndex(e => e.ConversationId, "ux_group_conversations_conversation_id")
+                .IsUnique()
+                .HasFilter("(is_deleted = false)");
+
+            entity.HasIndex(e => e.EntityId, "ux_group_conversations_entity_id").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AvatarUrl)
+                .HasMaxLength(2048)
+                .HasColumnName("avatar_url");
+            entity.Property(e => e.ConversationId).HasColumnName("conversation_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id");
+            entity.Property(e => e.EntityId)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("entity_id");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Conversation).WithOne(p => p.GroupConversation)
+                .HasForeignKey<GroupConversation>(d => d.ConversationId)
+                .HasConstraintName("fk_group_conversations_conversations_conversation_id");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.GroupConversations)
+                .HasForeignKey(d => d.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_group_conversations_users_created_by_user_id");
         });
 
         modelBuilder.Entity<Message>(entity =>
