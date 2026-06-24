@@ -7,6 +7,9 @@ using Aprily.Backend.Features.Chat.UseCases.SendDirectMessage;
 using Aprily.Backend.Features.Chat.UseCases.SetMessageReaction;
 using Aprily.Backend.Features.Chat.UseCases.SearchConversations;
 using Aprily.Backend.Features.Chat.UseCases.CreateGroupConversation;
+using Aprily.Backend.Features.Chat.UseCases.GetGroupConversationDetails;
+using Aprily.Backend.Features.Chat.UseCases.UpdateGroupConversation;
+using Aprily.Backend.Features.Chat.UseCases.AddGroupMembers;
 
 namespace Aprily.Backend.Features.Chat;
 
@@ -24,6 +27,9 @@ public static class ChatEndpoints
         chat.MapGetConversationMessagesEndpoint();
         chat.MapOpenDirectConversationEndpoint();
         chat.MapCreateGroupConversationEndpoint();
+        chat.MapGetGroupConversationDetailsEndpoint();
+        chat.MapUpdateGroupConversationEndpoint();
+        chat.MapAddGroupMembersEndpoint();
         chat.MapSendDirectMessageEndpoint();
         chat.MapSetMessageReactionEndpoint();
         chat.MapMarkConversationAsReadEndpoint();
