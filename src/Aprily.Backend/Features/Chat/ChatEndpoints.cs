@@ -10,6 +10,9 @@ using Aprily.Backend.Features.Chat.UseCases.CreateGroupConversation;
 using Aprily.Backend.Features.Chat.UseCases.GetGroupConversationDetails;
 using Aprily.Backend.Features.Chat.UseCases.UpdateGroupConversation;
 using Aprily.Backend.Features.Chat.UseCases.AddGroupMembers;
+using Aprily.Backend.Features.Chat.UseCases.RemoveGroupMember;
+using Aprily.Backend.Features.Chat.UseCases.LeaveGroupConversation;
+using Aprily.Backend.Features.Chat.UseCases.DeleteGroupConversation;
 
 namespace Aprily.Backend.Features.Chat;
 
@@ -30,6 +33,9 @@ public static class ChatEndpoints
         chat.MapGetGroupConversationDetailsEndpoint();
         chat.MapUpdateGroupConversationEndpoint();
         chat.MapAddGroupMembersEndpoint();
+        chat.MapRemoveGroupMemberEndpoint();
+        chat.MapLeaveGroupConversationEndpoint();
+        chat.MapDeleteGroupConversationEndpoint();
         chat.MapSendDirectMessageEndpoint();
         chat.MapSetMessageReactionEndpoint();
         chat.MapMarkConversationAsReadEndpoint();

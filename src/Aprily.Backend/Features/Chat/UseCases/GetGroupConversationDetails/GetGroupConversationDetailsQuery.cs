@@ -29,7 +29,7 @@ public sealed class GetGroupConversationDetailsQueryHandler(IDbConnectionFactory
             INNER JOIN group_conversations gc ON gc.conversation_id = c.id AND gc.is_deleted = false
             INNER JOIN users owner ON owner.id = gc.created_by_user_id AND owner.is_deleted = false
             INNER JOIN conversation_members current_member ON current_member.conversation_id = c.id AND current_member.is_deleted = false
-            INNER JOIN users current_user ON current_user.id = current_member.user_id AND current_user.entity_id = @CurrentUserId AND current_user.is_deleted = false
+            INNER JOIN users viewer_user ON viewer_user.id = current_member.user_id AND viewer_user.entity_id = @CurrentUserId AND viewer_user.is_deleted = false
             INNER JOIN conversation_members member ON member.conversation_id = c.id AND member.is_deleted = false
             INNER JOIN users member_user ON member_user.id = member.user_id AND member_user.is_deleted = false
             WHERE c.entity_id = @ConversationId AND c.type = 'group' AND c.is_deleted = false

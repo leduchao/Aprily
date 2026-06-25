@@ -182,10 +182,14 @@ export const getGroupConversationDetails = async (conversationId: string) =>
 export const updateGroupConversation = async (input: {
   conversationId: string
   name: string
+  avatarUrl?: string | null
 }) =>
-  apiClient.put<{ conversationId: string; name: string }, { name: string }>(
+  apiClient.put<
+    { conversationId: string; name: string; avatarUrl: string | null },
+    { name: string; avatarUrl?: string | null }
+  >(
     `/chat/group-conversations/${input.conversationId}`,
-    { name: input.name }
+    { name: input.name, avatarUrl: input.avatarUrl }
   )
 
 export const addGroupMembers = async (input: {
@@ -198,6 +202,25 @@ export const addGroupMembers = async (input: {
   >(`/chat/group-conversations/${input.conversationId}/members`, {
     memberUserIds: input.memberUserIds,
   })
+
+export const removeGroupMember = async (input: {
+  conversationId: string
+  memberUserId: string
+}) =>
+  apiClient.delete<{ conversationId: string; removedUserId: string }>(
+    `/chat/group-conversations/${input.conversationId}/members/${input.memberUserId}`
+  )
+
+export const leaveGroupConversation = async (conversationId: string) =>
+  apiClient.post<{ conversationId: string }, Record<string, never>>(
+    `/chat/group-conversations/${conversationId}/leave`,
+    {}
+  )
+
+export const deleteGroupConversation = async (conversationId: string) =>
+  apiClient.delete<{ conversationId: string }>(
+    `/chat/group-conversations/${conversationId}`
+  )
 
 export const sendDirectMessage = async (input: SendDirectMessageInput) => {
   if (input.images?.length) {
@@ -323,6 +346,57 @@ export const useAddGroupMembersMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: addGroupMembers,
+    onSuccess: async (response) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: chatQueryKeys.conversations(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: chatQueryKeys.groupInfo(response.conversationId),
+        }),
+      ])
+    },
+  })
+}
+
+export const useRemoveGroupMemberMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: removeGroupMember,
+    onSuccess: async (response) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: chatQueryKeys.conversations(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: chatQueryKeys.groupInfo(response.conversationId),
+        }),
+      ])
+    },
+  })
+}
+
+export const useLeaveGroupConversationMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: leaveGroupConversation,
+    onSuccess: async (response) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: chatQueryKeys.conversations(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: chatQueryKeys.groupInfo(response.conversationId),
+        }),
+      ])
+    },
+  })
+}
+
+export const useDeleteGroupConversationMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteGroupConversation,
     onSuccess: async (response) => {
       await Promise.all([
         queryClient.invalidateQueries({

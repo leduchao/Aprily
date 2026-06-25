@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Aprily.Backend.Features.Chat.UseCases.UpdateGroupConversation;
 
-public record UpdateGroupConversationResponse(Guid ConversationId, string Name);
-public record UpdateGroupConversationCommand(Guid ConversationId, string Name)
+public record UpdateGroupConversationResponse(Guid ConversationId, string Name, string? AvatarUrl);
+public record UpdateGroupConversationCommand(Guid ConversationId, string Name, string? AvatarUrl, bool HasAvatarUrl)
     : IRequest<Result<UpdateGroupConversationResponse>>;
 
 public sealed class UpdateGroupConversationCommandHandler(AppDbContext dbContext, ICurrentUser currentUser, IHubContext<ChatHub> chatHub)
@@ -28,6 +28,9 @@ public sealed class UpdateGroupConversationCommandHandler(AppDbContext dbContext
             return Result<UpdateGroupConversationResponse>.Failure(new Error("chat.group_forbidden", "You cannot edit this group"));
 
         group.Name = request.Name.Trim();
+        if (request.HasAvatarUrl)
+            group.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var memberGroups = await dbContext.ConversationMembers
@@ -35,6 +38,6 @@ public sealed class UpdateGroupConversationCommandHandler(AppDbContext dbContext
             .Select(member => ChatHub.UserGroup(member.User.EntityId)).ToListAsync(cancellationToken);
         await chatHub.Clients.Groups(memberGroups).SendAsync("conversationUpdated", group.Conversation.EntityId, cancellationToken);
 
-        return Result<UpdateGroupConversationResponse>.Success(new(group.Conversation.EntityId, group.Name));
+        return Result<UpdateGroupConversationResponse>.Success(new(group.Conversation.EntityId, group.Name, group.AvatarUrl));
     }
 }

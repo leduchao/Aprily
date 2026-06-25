@@ -8,5 +8,6 @@ public sealed class UpdateGroupConversationValidator : AbstractValidator<UpdateG
     {
         RuleFor(x => x.ConversationId).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.AvatarUrl).MaximumLength(2048).When(x => x.HasAvatarUrl);
     }
 }
