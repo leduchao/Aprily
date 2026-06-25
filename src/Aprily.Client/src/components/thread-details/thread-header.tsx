@@ -15,9 +15,11 @@ import {
   ArrowLeft,
   EllipsisVertical,
   Phone,
+  type LucideIcon,
   UserRound,
   Video,
 } from "lucide-react"
+import { useState, type ReactNode } from "react"
 
 const threadActions = [
   {
@@ -32,7 +34,7 @@ const threadActions = [
     icon: UserRound,
     label: "View profile",
   },
-]
+] satisfies { icon: LucideIcon; label: string }[]
 
 export type ThreadHeaderInfo = {
   avatarUrl: string | null
@@ -43,9 +45,11 @@ export type ThreadHeaderInfo = {
 
 type ThreadHeaderProps = {
   thread: ThreadHeaderInfo
+  menuItems?: ReactNode
 }
 
-export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
+export const ThreadHeader = ({ thread, menuItems }: ThreadHeaderProps) => {
+  const [isActionsOpen, setIsActionsOpen] = useState(false)
   const fallback = thread.name
     .split(" ")
     .map((part) => part[0])
@@ -81,7 +85,7 @@ export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
         </p>
       </div>
 
-      <Popover>
+      <Popover open={isActionsOpen} onOpenChange={setIsActionsOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
@@ -97,7 +101,9 @@ export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
           align="end"
           sideOffset={8}
           className="w-56 gap-1 rounded-2xl p-2"
+          onClickCapture={() => setIsActionsOpen(false)}
         >
+          {menuItems}
           {threadActions.map((action) => {
             const Icon = action.icon
 

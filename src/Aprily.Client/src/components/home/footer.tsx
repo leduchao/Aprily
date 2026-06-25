@@ -232,7 +232,7 @@ const NewContactPanel = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         <Button
-          className="w-full"
+          className="w-full h-12 rounded-full text-base"
           size="lg"
           disabled={sendFriendRequestMutation.isPending}
         >
@@ -338,7 +338,7 @@ const NewGroupPanel = ({
         })}
       </div>
       <Button
-        className="mt-4 w-full"
+        className="mt-4 w-full h-12 rounded-full text-base"
         size="lg"
         disabled={
           !name.trim() || selectedIds.length < 2 || createGroupMutation.isPending

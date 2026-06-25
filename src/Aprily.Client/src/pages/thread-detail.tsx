@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button"
+import { GroupSettingsDialog } from "@/components/thread-details/group-settings-dialog"
 import { MessageComposer } from "@/components/thread-details/message-composer"
 import { MessageList } from "@/components/thread-details/message-list"
 import { ThreadHeader } from "@/components/thread-details/thread-header"
@@ -11,7 +13,7 @@ import {
   type MessageReactionType,
 } from "@/lib/chat-api"
 import { useParams } from "@tanstack/react-router"
-import { LoaderCircle } from "lucide-react"
+import { LoaderCircle, Settings } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 export const ThreadDetailPage = () => {
@@ -25,6 +27,7 @@ export const ThreadDetailPage = () => {
   const markAsReadMutation = useMarkConversationAsReadMutation()
   const setReactionMutation = useSetMessageReactionMutation()
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null)
+  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false)
   const lastMarkedMessageIdRef = useRef<string | null>(null)
 
   const conversation = conversationsQuery.data?.find(
@@ -86,7 +89,27 @@ export const ThreadDetailPage = () => {
               ? `${conversation.memberCount} members`
               : undefined,
         }}
+        menuItems={
+          conversation?.type === "group" ? (
+            <Button
+              variant="ghost"
+              className="h-11 w-full justify-start gap-3 rounded-xl px-3"
+              onClick={() => setIsGroupSettingsOpen(true)}
+            >
+              <Settings className="size-5" />
+              <span>Group settings</span>
+            </Button>
+          ) : null
+        }
       />
+
+      {conversation?.type === "group" && (
+        <GroupSettingsDialog
+          conversationId={conversation.id}
+          open={isGroupSettingsOpen}
+          onOpenChange={setIsGroupSettingsOpen}
+        />
+      )}
 
       {messagesQuery.isLoading ? (
         <section className="flex min-h-0 flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
