@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: aprily-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./src/Aprily.Backend/Database/InitDatabase.sql:/docker-entrypoint-initdb.d/001-init-database.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aprily-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: src/Aprily.Backend/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__WriteConnection: Host=postgres;Port=5432;Database=aprily-db;Username=postgres;Password=postgres
+      ConnectionStrings__ReadConnection: Host=postgres;Port=5432;Database=aprily-db;Username=postgres;Password=postgres
+      Jwt__SecretKey: 91c76af268beccdad9ca0a22a9b6385ff5f14b903c04b79b303263bf31c71fd2
+      Jwt__Issuer: aprily
+      Jwt__Audience: aprily
+      Jwt__ExpirationInMinutes: 10
+    ports:
+      - "5113:8080"
+    volumes:
+      - backend-uploads:/app/Uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  client:
+    build:
+      context: .
+      dockerfile: src/Aprily.Client/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:
+  backend-uploads:

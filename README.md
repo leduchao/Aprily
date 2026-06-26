@@ -232,3 +232,42 @@ Db-first scaffold notes are in:
 ```text
 src/Aprily.Backend/SCAFFOLD.md
 ```
+
+## Docker Setup
+
+You can run the full app with Docker Compose from the repository root:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+Compose starts three services:
+
+| Service | Purpose | Host URL |
+| --- | --- | --- |
+| `client` | Built React/Vite app served by nginx | `http://localhost:8080` |
+| `backend` | ASP.NET Core API | `http://localhost:5113` |
+| `postgres` | PostgreSQL database | `localhost:5432` |
+
+The client container proxies `/api` and `/hubs` to the backend container, so
+the browser can use the same origin for API calls, cookies, and SignalR.
+
+Useful Docker commands:
+
+```bash
+docker compose up -d --build
+docker compose logs -f
+docker compose down
+```
+
+To remove the persisted PostgreSQL data and uploaded files too:
+
+```bash
+docker compose down -v
+```
